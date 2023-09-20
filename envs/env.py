@@ -1,10 +1,12 @@
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any
 
 import casadi as cs
 import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
 from gymnasium import Env
+from mpcrl import Agent, LstdQLearningAgent
+
 from envs.model import (
     df_real,
     get_disturbance_profile,
@@ -13,7 +15,6 @@ from envs.model import (
     get_y_min,
     output_real,
 )
-from mpcrl import Agent, LstdQLearningAgent
 
 
 class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floating]]):
@@ -26,7 +27,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     # cost constants
     c_u = [10, 1, 1]  # penalty on each control signal
     c_y = 10e3  # reward on yield
-    yield_step = 191 # 3839 
+    yield_step = 191  # 3839
     w = np.array([1000, 1000, 1000, 1000])  # penalty on constraint violations
 
     # noise terms
@@ -56,9 +57,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     def reset(
         self,
         *,
-        seed: Optional[int] = None,
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[npt.NDArray[np.floating], Dict[str, Any]]:
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[npt.NDArray[np.floating], dict[str, Any]]:
         """Resets the state of the system."""
         self.x = np.array([[0.0035], [0.001], [15], [0.008]])
         self.step_counter = 0
@@ -82,7 +83,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
     def step(
         self, action: cs.DM
-    ) -> Tuple[npt.NDArray[np.floating], float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[npt.NDArray[np.floating], float, bool, bool, dict[str, Any]]:
         """Steps the system."""
         r = float(self.get_stage_cost(self.x, action))
         x_new = self.integrator(
@@ -120,6 +121,7 @@ class GreenhouseAgent(Agent):
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
         return super().on_timestep_end(env, episode, timestep)
 
+
 # TODO REMOVE USE OF TIMESTEP!
 class GreenhouseLearningAgent(LstdQLearningAgent):
     # set the disturbance at start of episode and each new timestep
@@ -135,7 +137,9 @@ class GreenhouseLearningAgent(LstdQLearningAgent):
 
     def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
-            :, env.step_counter + 1 : (env.step_counter + 1 + self.V.prediction_horizon + 1)
+            :,
+            env.step_counter
+            + 1 : (env.step_counter + 1 + self.V.prediction_horizon + 1),
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 

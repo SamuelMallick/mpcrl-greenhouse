@@ -101,10 +101,12 @@ def generate_perturbed_p():
     for i in range(len(p_hat)):
         max_pert = p_hat[i] * 0.2
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
-    #return p_hat
+    # return p_hat
     return p_true
 
+
 # continuos time model
+
 
 # sub-functions within dynamics
 def psi(x, d, p):
@@ -239,7 +241,8 @@ def rk4_learnable(x, u, d, p_learnable, p_indexes):
 
     return rk4_step(x, u, d, p_learnable_full)
 
-def output_learnable(x,p_learnable, p_indexes):
+
+def output_learnable(x, p_learnable, p_indexes):
     if len(p_hat_list) == 0:
         raise RuntimeError(
             "P samples must be generated before using multi_sample_output."
@@ -251,6 +254,7 @@ def output_learnable(x,p_learnable, p_indexes):
         param_counter += 1
 
     return output(x, p_learnable_full)
+
 
 def get_initial_perturbed_p():
     return p_hat_list[0]

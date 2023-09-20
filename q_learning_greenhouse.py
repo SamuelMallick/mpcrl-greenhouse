@@ -1,26 +1,27 @@
-import contextlib
 import datetime
 import logging
 import pickle
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 import casadi as cs
-import gymnasium as gym
 import matplotlib.pyplot as plt
 
 # import networkx as netx
 import numpy as np
-import numpy.typing as npt
 from csnlp import Nlp
-from csnlp.util.math import quad_form
 from csnlp.wrappers import Mpc
+from gymnasium.wrappers import TimeLimit
+from mpcrl import LearnableParameter, LearnableParametersDict
+from mpcrl.core.experience import ExperienceReplay
+from mpcrl.core.schedulers import ExponentialScheduler
+from mpcrl.wrappers.agents import Log, RecordUpdates
+from mpcrl.wrappers.envs import MonitorEpisodes
+
 from envs.env import (
     GreenhouseAgent,
     GreenhouseLearningAgent,
     GreenhouseSampleAgent,
     LettuceGreenHouse,
 )
-from gymnasium.wrappers import TimeLimit
 from envs.model import (
     get_control_bounds,
     get_initial_perturbed_p,
@@ -29,22 +30,15 @@ from envs.model import (
     get_y_min,
     multi_sample_output,
     multi_sample_rk4_step,
+    output_learnable,
     output_real,
     rk4_learnable,
     rk4_step_real,
-    output_learnable
 )
-from mpcrl import LearnableParameter, LearnableParametersDict, LstdQLearningAgent
-from mpcrl.core.experience import ExperienceReplay
-from mpcrl.core.exploration import EpsilonGreedyExploration
-from mpcrl.core.schedulers import ExponentialScheduler
-from mpcrl.util.control import dlqr
-from mpcrl.wrappers.agents import Log, RecordUpdates
-from mpcrl.wrappers.envs import MonitorEpisodes
 
 np.random.seed(1)
 
-SYM_TYPE = "learn"  # options: "nom", "sample", "learn"
+SYM_TYPE = "nom"  # options: "nom", "sample", "learn"
 STORE_DATA = False
 PLOT = True
 
@@ -69,7 +63,7 @@ class NominalMpc(Mpc[cs.SX]):
         # variables (state, action, slack)
         x, _ = self.state("x", nx)  # , lb=[[0], [0], [-float("inf")], [0]])
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
-        d = self.disturbance("d", nd)
+        self.disturbance("d", nd)
 
         # dynamics
         # self.set_dynamics(lambda x, u, d: x + ts * df(x, u, d), n_in=3, n_out=1)
@@ -146,7 +140,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
         self._states["x"] = x
         self._initial_states["x_0"] = x0
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
-        d = self.disturbance("d", nd)
+        self.disturbance("d", nd)
 
         # dynamics
         self.set_dynamics(
@@ -214,7 +208,7 @@ class LearningMpc(Mpc[cs.SX]):
         3,
         5,
     ]  # list of indexes in p to which learnable parameters correspond
-    w = 1e3*np.ones((1, nx))  # penalty on constraint violations
+    w = 1e3 * np.ones((1, nx))  # penalty on constraint violations
 
     # par inits
     learnable_pars_init = {
@@ -239,7 +233,7 @@ class LearningMpc(Mpc[cs.SX]):
         # variables (state, action, slack)
         x, _ = self.state("x", nx)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
-        d = self.disturbance("d", nd)
+        self.disturbance("d", nd)
         s, _, _ = self.variable("s", (nx, N), lb=0)  # slack vars
 
         # init parameters
@@ -341,7 +335,7 @@ elif SYM_TYPE == "learn":
                 learnable_parameters=learnable_pars,
                 fixed_parameters=mpc.fixed_pars_init,
                 discount_factor=mpc.discount_factor,
-                update_strategy=ep_len+1,
+                update_strategy=ep_len + 1,
                 learning_rate=ExponentialScheduler(0e-3, factor=1),
                 hessian_type="approx",
                 record_td_errors=True,
@@ -357,7 +351,7 @@ elif SYM_TYPE == "learn":
         level=logging.DEBUG,
         log_frequencies={"on_timestep_end": 1},
     )
-    #evaluate train
+    # evaluate train
     agent.train(env=env, episodes=num_episodes, seed=1, raises=False)
     TD = np.squeeze(agent.td_errors)
 
@@ -373,10 +367,8 @@ else:
 
 print(f"Return = {sum(R.squeeze())}")
 
-R_eps = [sum((R[ep_len * i : ep_len * (i + 1)])) for i in range(num_episodes)]
-TD_eps = [
-    sum((TD[ep_len * i : ep_len * (i + 1)])) / ep_len for i in range(num_episodes)
-]
+R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
+TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
 
 if PLOT:
     _, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
@@ -388,7 +380,6 @@ if PLOT:
     _, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
     axs[0].plot(TD_eps, "o", markersize=1)
     axs[1].plot(R_eps, "o", markersize=1)
-
 
 
 if PLOT:
@@ -432,7 +423,7 @@ if STORE_DATA:
         "data/green"
         + identifier
         + datetime.datetime.now().strftime("%d%H%M%S%f")
-        + str(".pkl"),
+        + ".pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)
