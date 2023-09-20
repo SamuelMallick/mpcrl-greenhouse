@@ -4,16 +4,18 @@ import matplotlib.pyplot as plt
 
 plt.rc("text", usetex=True)
 
-num_episodes = 50
-days = 40
+num_episodes = 1
+days = 1
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 
 with open(
-    "data/green_data/e2.pkl",
+    "results/test.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)
     U = pickle.load(file)
+    y = pickle.load(file)
+    d = pickle.load(file)
     R = pickle.load(file)
     TD = pickle.load(file)
     param_list = pickle.load(file)

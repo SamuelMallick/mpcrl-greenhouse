@@ -10,7 +10,6 @@ nu = 3
 nd = 4
 ts = 60 * 15  # 15 minute time steps
 time_steps_per_day = 24 * 4  # how many 15 minute incrementes there are in a day
-days_to_grow = 40  # length of each episode, from planting to harvesting
 
 # u bounds
 u_min = np.zeros((3, 1))
@@ -29,8 +28,11 @@ def get_model_details():
     return nx, nu, nd, ts
 
 
-def get_disturbance_profile(init_day: int):
+def get_disturbance_profile(init_day: int, days_to_grow: int):
     # an extra days worth added to the profile for the prediction horizon
+    if init_day > 310:
+        init_day = init_day % 310
+    init_day = 0
     return d[
         :,
         init_day
@@ -101,8 +103,8 @@ def generate_perturbed_p():
     for i in range(len(p_hat)):
         max_pert = p_hat[i] * 0.2
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
-    # return p_hat
-    return p_true
+    return p_hat
+    # return p_true
 
 
 # continuos time model

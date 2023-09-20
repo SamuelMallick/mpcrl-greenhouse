@@ -38,9 +38,9 @@ from envs.model import (
 
 np.random.seed(1)
 
-SYM_TYPE = "nom"  # options: "nom", "sample", "learn"
-STORE_DATA = False
-PLOT = True
+SYM_TYPE = "learn"  # options: "nom", "sample", "learn"
+STORE_DATA = True
+PLOT = False
 
 nx, nu, nd, ts = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
@@ -61,7 +61,7 @@ class NominalMpc(Mpc[cs.SX]):
         super().__init__(nlp, N)
 
         # variables (state, action, slack)
-        x, _ = self.state("x", nx)  # , lb=[[0], [0], [-float("inf")], [0]])
+        x, _ = self.state("x", nx)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
 
@@ -298,11 +298,13 @@ class LearningMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-days = 1
+days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
-env = MonitorEpisodes(TimeLimit(LettuceGreenHouse(), max_episode_steps=int(ep_len)))
+env = MonitorEpisodes(
+    TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
+)
 TD = []
-num_episodes = 1
+num_episodes = 50
 
 if SYM_TYPE == "nom":
     mpc = NominalMpc()
@@ -313,7 +315,7 @@ if SYM_TYPE == "nom":
     )
     agent.evaluate(env=env, episodes=num_episodes, seed=1, raises=False)
 elif SYM_TYPE == "sample":
-    sample_mpc = SampleBasedMpc(Ns=2)
+    sample_mpc = SampleBasedMpc(Ns=5)
     agent = Log(
         GreenhouseSampleAgent(sample_mpc, {}),
         level=logging.DEBUG,
@@ -335,8 +337,8 @@ elif SYM_TYPE == "learn":
                 learnable_parameters=learnable_pars,
                 fixed_parameters=mpc.fixed_pars_init,
                 discount_factor=mpc.discount_factor,
-                update_strategy=ep_len + 1,
-                learning_rate=ExponentialScheduler(0e-3, factor=1),
+                update_strategy=ep_len,
+                learning_rate=ExponentialScheduler(1e-3, factor=1),
                 hessian_type="approx",
                 record_td_errors=True,
                 exploration=None,
@@ -369,6 +371,9 @@ print(f"Return = {sum(R.squeeze())}")
 
 R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
 TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
+# generate output
+y = np.asarray([output_real(X[k, :]) for k in range(X.shape[0])]).squeeze()
+d = env.disturbance_profile_data
 
 if PLOT:
     _, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
@@ -383,13 +388,10 @@ if PLOT:
 
 
 if PLOT:
-    # generate output
-    y = np.asarray([output_real(X[k, :]) for k in range(X.shape[0])]).squeeze()
-    d = env.disturbance_profile
     # get bounds
-    y_min = np.zeros((nx, ep_len))
-    y_max = np.zeros((nx, ep_len))
-    for t in range(ep_len):
+    y_min = np.zeros((nx, num_episodes * ep_len))
+    y_max = np.zeros((nx, num_episodes * ep_len))
+    for t in range(num_episodes * ep_len):
         y_min[:, [t]] = get_y_min(d[:, [t]])
         y_max[:, [t]] = get_y_max(d[:, [t]])
 
@@ -409,7 +411,7 @@ if PLOT:
         axs[i].axhline(u_max[i], color="r")
     _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
     for i in range(4):
-        axs[i].plot(env.disturbance_profile[i, : days * 24 * 4])
+        axs[i].plot(d[i, :])
     plt.show()
 
 if SYM_TYPE == "learn":
@@ -417,17 +419,16 @@ if SYM_TYPE == "learn":
     for key, val in agent.updates_history.items():
         param_dict[key] = val
 
-identifier = "e_5"
+identifier = "e_3_50"
 if STORE_DATA:
     with open(
-        "data/green"
-        + identifier
-        + datetime.datetime.now().strftime("%d%H%M%S%f")
-        + ".pkl",
+        "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)
         pickle.dump(U, file)
+        pickle.dump(y, file)
+        pickle.dump(d, file)
         pickle.dump(R, file)
         pickle.dump(TD, file)
         pickle.dump(param_dict, file)

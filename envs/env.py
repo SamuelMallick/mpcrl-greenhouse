@@ -21,22 +21,26 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     """Continuous time environment for a luttuce greenhouse."""
 
     nx, nu, nd, ts = get_model_details()
-    disturbance_profile = get_disturbance_profile(init_day=0)
+    disturbance_profile = get_disturbance_profile(init_day=0, days_to_grow=40)
+    disturbance_profile_data = np.empty((4, 0))
     step_counter = 0
 
     # cost constants
     c_u = [10, 1, 1]  # penalty on each control signal
     c_y = 10e3  # reward on yield
-    yield_step = 191  # 3839
+    yield_step = 3839  # 191
     w = np.array([1000, 1000, 1000, 1000])  # penalty on constraint violations
+    time_steps_per_day = 24 * 4  # how many 15 minute incrementes there are in a day
 
     # noise terms
     mean = np.zeros((nx, 1))
     # sd = np.array([[1e-5], [1e-5], [0.1], [1e-5]])
     sd = np.array([[0], [0], [0], [0]])
 
-    def __init__(self) -> None:
+    def __init__(self, days_to_grow: int) -> None:
         super().__init__()
+
+        self.days_to_grow = days_to_grow
 
         # set-up continuous time integrator for dynamics simulation
         x = cs.SX.sym("x", (self.nx, 1))
@@ -62,6 +66,17 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     ) -> tuple[npt.NDArray[np.floating], dict[str, Any]]:
         """Resets the state of the system."""
         self.x = np.array([[0.0035], [0.001], [15], [0.008]])
+        self.disturbance_profile = get_disturbance_profile(
+            np.random.randint(0, 300), days_to_grow=self.days_to_grow
+        )
+        self.disturbance_profile_data = np.hstack(
+            (
+                self.disturbance_profile_data,
+                self.disturbance_profile[
+                    :, : self.time_steps_per_day * self.days_to_grow
+                ],
+            )
+        )
         self.step_counter = 0
         super().reset(seed=seed, options=options)
         return self.x, {}
@@ -111,7 +126,7 @@ class GreenhouseAgent(Agent):
 
     def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
-            :, timestep : (timestep + self.V.prediction_horizon + 1)
+            :, env.step_counter : (env.step_counter + self.V.prediction_horizon + 1)
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
@@ -122,7 +137,7 @@ class GreenhouseAgent(Agent):
         return super().on_timestep_end(env, episode, timestep)
 
 
-# TODO REMOVE USE OF TIMESTEP!
+# TODO request bug fix from Fillipo so that the training and evaluation can use the same indexes
 class GreenhouseLearningAgent(LstdQLearningAgent):
     # set the disturbance at start of episode and each new timestep
     def on_episode_start(self, env: Env, episode: int) -> None:
@@ -169,7 +184,7 @@ class GreenhouseSampleAgent(Agent):
 
     def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
-            :, timestep : (timestep + self.V.prediction_horizon + 1)
+            :, env.step_counter : (env.step_counter + self.V.prediction_horizon + 1)
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
