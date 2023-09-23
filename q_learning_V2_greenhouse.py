@@ -85,7 +85,7 @@ class LearningMpc(Mpc[cs.SX]):
         x, _ = self.state("x", nx)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
-        s, _, _ = self.variable("s", (nx, N), lb=0)  # slack vars
+        s, _, _ = self.variable("s", (nx, N+1), lb=0)  # slack vars
 
         # init parameters
         V0_learn = self.parameter("V0", (1,))
@@ -94,7 +94,9 @@ class LearningMpc(Mpc[cs.SX]):
         c_dy_learn = self.parameter("c_dy", (1,))
 
         if LEARN_W:
-            w = self.parameter("w", (1, 4))
+            w_loc = self.parameter("w", (1, 4))
+        else:
+            w_loc = w
 
         p_learnable = [self.parameter(f"p_{i}", (1,)) for i in range(4)]
 
@@ -127,10 +129,10 @@ class LearningMpc(Mpc[cs.SX]):
         for k in range(N):
             for j in range(nu):
                 obj += (self.discount_factor**k)*c_u_learn[j] * u[j, k]
-            obj += (self.discount_factor**k)*w @ s[:, [k]]
+            obj += (self.discount_factor**k)*w_loc @ s[:, [k]]
             if k > 0:
                 obj += -(self.discount_factor**k)*c_dy_learn * (y_k[k][0] - y_k[k - 1][0])
-        obj += (self.discount_factor**N)*w @ s[:, [N]]     
+        obj += (self.discount_factor**N)*w_loc @ s[:, [N]]     
         obj += -(self.discount_factor**N)*c_y_learn * y_k[N][0]
         self.minimize(obj)
 
