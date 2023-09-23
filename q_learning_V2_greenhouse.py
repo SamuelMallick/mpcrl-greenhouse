@@ -16,10 +16,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from mpcrl.wrappers.agents import Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import (
-    GreenhouseLearningAgent,
-    LettuceGreenHouse,
-)
+from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
 from envs.model import (
     get_control_bounds,
     get_initial_perturbed_p,
@@ -35,17 +32,23 @@ np.random.seed(1)
 STORE_DATA = True
 PLOT = False
 
+LEARN_W = False
+
 nx, nu, nd, ts = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
 c_y = np.array([10e3])  # reward on yield
+w = 5e3 * np.ones((1, nx))
+
 
 class LearningMpc(Mpc[cs.SX]):
     """Non-linear MPC for greenhouse control."""
 
     horizon = 6 * 4  # prediction horizon
     discount_factor = 1  # TODO add the gamma scaling into the local cost
+    if len(sys.argv) > 3:
+        discount_factor = float(sys.argv[3])
 
     p_indexes = [
         0,
@@ -56,12 +59,14 @@ class LearningMpc(Mpc[cs.SX]):
 
     # par inits
     learnable_pars_init = {
-        "V0": np.zeros((1,)),
+        "V0": 100 * np.ones((1,)),
         "c_u": c_u,
         "c_y": c_y,
         "c_dy": np.zeros((1,)),
-        "w": 1e3*np.ones((1, nx))
     }
+    if LEARN_W:
+        learnable_pars_init["w"] = 1e3 * np.ones((1, nx))
+
     p_init = get_initial_perturbed_p()
     for i in range(4):
         learnable_pars_init[f"p_{i}"] = np.array([p_init[p_indexes[i]]])
@@ -87,7 +92,9 @@ class LearningMpc(Mpc[cs.SX]):
         c_u_learn = self.parameter("c_u", (nu,))
         c_y_learn = self.parameter("c_y", (1,))
         c_dy_learn = self.parameter("c_dy", (1,))
-        w = self.parameter("w", (1, 4))
+
+        if LEARN_W:
+            w = self.parameter("w", (1, 4))
 
         p_learnable = [self.parameter(f"p_{i}", (1,)) for i in range(4)]
 
@@ -113,17 +120,18 @@ class LearningMpc(Mpc[cs.SX]):
             self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
 
         y_k.append(output_learnable(x[:, [N]], p_learnable, self.p_indexes))
-        self.constraint(f"y_min_{N}", y_k[N], ">=", y_min_list[N] - s[:, [k]])
-        self.constraint(f"y_max_{N}", y_k[N], "<=", y_max_list[N] + s[:, [k]])
+        self.constraint(f"y_min_{N}", y_k[N], ">=", y_min_list[N] - s[:, [N]])
+        self.constraint(f"y_max_{N}", y_k[N], "<=", y_max_list[N] + s[:, [N]])
 
         obj = V0_learn
         for k in range(N):
             for j in range(nu):
-                obj += c_u_learn[j] * u[j, k]
-            obj += w @ s[:, [k]]
+                obj += (self.discount_factor**k)*c_u_learn[j] * u[j, k]
+            obj += (self.discount_factor**k)*w @ s[:, [k]]
             if k > 0:
-                obj += -c_dy_learn*(y_k[k][0] - y_k[k-1][0])
-        obj += -c_y_learn * y_k[N][0]
+                obj += -(self.discount_factor**k)*c_dy_learn * (y_k[k][0] - y_k[k - 1][0])
+        obj += (self.discount_factor**N)*w @ s[:, [N]]     
+        obj += -(self.discount_factor**N)*c_y_learn * y_k[N][0]
         self.minimize(obj)
 
         # solver
@@ -166,6 +174,8 @@ learnable_pars = LearnableParametersDict[cs.SX](
     )
 )
 learning_rate = 1e-1
+if len(sys.argv) > 2:
+    learning_rate = float(sys.argv[2])
 agent = Log(  # type: ignore[var-annotated]
     RecordUpdates(
         GreenhouseLearningAgent(
@@ -218,7 +228,7 @@ param_dict = {}
 for key, val in agent.updates_history.items():
     param_dict[key] = val
 
-identifier = f"_V2_lr_{learning_rate}_ne_{num_episodes}_"
+identifier = f"_V2_lr_{learning_rate}_ne_{num_episodes}_df_{mpc.discount_factor}"
 if STORE_DATA:
     with open(
         "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",

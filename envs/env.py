@@ -28,7 +28,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     # cost constants
     c_u = [10, 1, 1]  # penalty on each control signal
     c_y = 10e3  # reward on yield
-    w = np.array([1000, 1000, 1000, 1000])  # penalty on constraint violations
+    w = 5e3 * np.array([1, 1, 1, 1])  # penalty on constraint violations
     time_steps_per_day = 24 * 4  # how many 15 minute incrementes there are in a day
 
     # noise terms
@@ -40,7 +40,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         super().__init__()
 
         self.days_to_grow = days_to_grow
-        self.yield_step = self.time_steps_per_day*days_to_grow - 1
+        self.yield_step = self.time_steps_per_day * days_to_grow - 1
 
         # set-up continuous time integrator for dynamics simulation
         x = cs.SX.sym("x", (self.nx, 1))
