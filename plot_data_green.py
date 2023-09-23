@@ -1,18 +1,20 @@
 import pickle
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 from envs.model import get_y_max, get_y_min
 
 plt.rc("text", usetex=True)
 
-num_episodes = 50
-days = 40
+num_episodes = 1
+days = 2
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 nx = 4
 nu = 3
 
 with open(
-    "results/50_iters.pkl",
+    "results/test.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)
@@ -35,21 +37,26 @@ axs[1].set_ylabel("$L$")
 _, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
 axs[0].plot(TD_eps, "o", markersize=1)
 axs[1].plot(R_eps, "o", markersize=1)
+axs[0].set_ylabel(r"$\tau (ep)$")
+axs[1].set_ylabel("$L (ep)$")
 
 # yields
-yields = [y[(i+1)*ep_len + i, 0] for i in range(num_episodes)]
+yields = [y[(i + 1) * ep_len + i, 0] for i in range(num_episodes)]
 _, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
 axs[0].plot(yields, "o", markersize=1)
 axs[0].set_ylabel(r"$yield$")
 cnstr_viols = np.zeros((num_episodes, 1))
 for i in range(num_episodes):
     for k in range(ep_len):
-        y_max = get_y_max(d[:, [i*ep_len + k]])
-        y_min = get_y_min(d[:, [i*ep_len + k]])
+        y_max = get_y_max(d[:, [i * ep_len + k]])
+        y_min = get_y_min(d[:, [i * ep_len + k]])
         # extra +i index in y because it has ep_len+1 entries for each ep
-        if any(y[[i*(ep_len+1) + k], :].reshape(4,1) > y_max) or any(y[[i*(ep_len+1) + k], :].reshape(4,1) < y_min):
+        if any(y[[i * (ep_len + 1) + k], :].reshape(4, 1) > y_max) or any(
+            y[[i * (ep_len + 1) + k], :].reshape(4, 1) < y_min
+        ):
             cnstr_viols[i, :] += 1
 axs[1].plot(cnstr_viols, "o", markersize=1)
+axs[1].set_ylabel(r"$cnstr viols$")
 
 # states and input
 # first ep
@@ -62,7 +69,7 @@ for k in range(ep_len):
 _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
 axs[0].set_title("First ep")
 for i in range(4):
-    axs[i].plot(y[: ep_len, i])
+    axs[i].plot(y[:ep_len, i])
     axs[i].plot(y_min[i, :], color="black")
     if i != 0:
         axs[i].plot(y_max[i, :], color="r")
@@ -77,12 +84,12 @@ for k in range(ep_len):
 _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
 axs[0].set_title("Last ep")
 for i in range(4):
-    axs[i].plot(y[-ep_len :, i])
+    axs[i].plot(y[-ep_len - 1 : -1, i])
     axs[i].plot(y_min[i, :], color="black")
     if i != 0:
         axs[i].plot(y_max[i, :], color="r")
-#_, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
-#for i in range(3):
+# _, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
+# for i in range(3):
 #    axs[i].plot(U[:, i])
 
 # parameters
@@ -106,6 +113,9 @@ axs[2, 1].plot(param_list["p_3"])
 axs[2, 1].set_ylabel(r"$p_3$")
 axs[3, 1].plot(param_list["p_0"])
 axs[3, 1].set_ylabel(r"$p_0$")
+if "c_dy" in param_list.keys():
+    axs[4, 1].plot(param_list["c_dy"])
+    axs[4, 1].set_ylabel(r"$c_dy$")
 
 
 plt.show()

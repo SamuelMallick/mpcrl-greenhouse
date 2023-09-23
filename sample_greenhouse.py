@@ -12,10 +12,7 @@ from gymnasium.wrappers import TimeLimit
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import (
-    GreenhouseSampleAgent,
-    LettuceGreenHouse,
-)
+from envs.env import GreenhouseSampleAgent, LettuceGreenHouse
 from envs.model import (
     get_control_bounds,
     get_model_details,

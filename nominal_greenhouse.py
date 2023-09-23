@@ -12,16 +12,8 @@ from gymnasium.wrappers import TimeLimit
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import (
-    GreenhouseAgent,
-    LettuceGreenHouse,
-)
-from envs.model import (
-    get_control_bounds,
-    get_model_details,
-    output_real,
-    rk4_step_real,
-)
+from envs.env import GreenhouseAgent, LettuceGreenHouse
+from envs.model import get_control_bounds, get_model_details, output_real, rk4_step_real
 from plot_green import plot_greenhouse
 
 np.random.seed(1)
@@ -101,6 +93,7 @@ class NominalMpc(Mpc[cs.SX]):
             },
         }
         self.init_solver(opts, solver="ipopt")
+
 
 days = 2
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
