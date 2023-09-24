@@ -16,10 +16,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from mpcrl.wrappers.agents import Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import (
-    GreenhouseLearningAgent,
-    LettuceGreenHouse,
-)
+from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
 from envs.model import (
     get_control_bounds,
     get_initial_perturbed_p,
@@ -40,6 +37,7 @@ u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
 c_y = np.array([10e3])  # reward on yield
+
 
 class LearningMpc(Mpc[cs.SX]):
     """Non-linear MPC for greenhouse control."""
@@ -161,6 +159,8 @@ learnable_pars = LearnableParametersDict[cs.SX](
 )
 
 learning_rate = 1e-1
+if len(sys.argv) > 2:
+    learning_rate = float(sys.argv[2])
 agent = Log(  # type: ignore[var-annotated]
     RecordUpdates(
         GreenhouseLearningAgent(

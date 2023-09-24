@@ -159,7 +159,7 @@ class LearningMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-days = 40
+days = 2
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
@@ -185,15 +185,15 @@ agent = Log(  # type: ignore[var-annotated]
             learnable_parameters=learnable_pars,
             fixed_parameters=mpc.fixed_pars_init,
             discount_factor=mpc.discount_factor,
-            update_strategy=ep_len,
+            update_strategy=1,
             learning_rate=ExponentialScheduler(learning_rate, factor=1),
             hessian_type="approx",
             record_td_errors=True,
             exploration=None,
             experience=ExperienceReplay(
-                maxlen=3 * ep_len,
-                sample_size=int(1.5 * ep_len),
-                include_latest=ep_len,
+                maxlen=500,
+                sample_size=250,
+                include_latest=100,
                 seed=0,
             ),
         )

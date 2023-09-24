@@ -7,14 +7,14 @@ from envs.model import get_y_max, get_y_min
 
 plt.rc("text", usetex=True)
 
-num_episodes = 1
-days = 2
+num_episodes = 50
+days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 nx = 4
 nu = 3
 
 with open(
-    "results/test.pkl",
+    "results/v_2_lr_1e-05_df_0_8.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)
