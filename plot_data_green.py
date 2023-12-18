@@ -14,7 +14,8 @@ nx = 4
 nu = 3
 
 with open(
-    "results/v_2_lr_1e-05_df_0_8.pkl",
+    # "results/v_2_lr_1e-05_df_0_8.pkl",
+    "green_V2_lr_1e-08_ne_50_df_0.826012504615801.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)

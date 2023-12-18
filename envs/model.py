@@ -16,7 +16,7 @@ u_min = np.zeros((3, 1))
 u_max = np.array([[1.2], [7.5], [150]])
 du_lim = 0.1 * u_max
 
-# noise terms
+# noise terms for output measurement
 mean = 0
 sd = 0
 
@@ -25,14 +25,15 @@ d = np.load("data/disturbances.npy")
 
 
 def get_model_details():
-    return nx, nu, nd, ts
+    return nx, nu, nd, ts, time_steps_per_day
 
 
 def get_disturbance_profile(init_day: int, days_to_grow: int):
     # an extra days worth added to the profile for the prediction horizon
     if init_day > 310:
         init_day = init_day % 310
-    init_day = 0
+
+    # return the disturbance vectors for the number of dyas requested, with one extra for the prediction horizon during the last day
     return d[
         :,
         init_day
@@ -101,10 +102,9 @@ def generate_perturbed_p():
 
     p_hat = p_true.copy()
     for i in range(len(p_hat)):
-        max_pert = p_hat[i] * 0.2
+        max_pert = p_hat[i] * 0.05
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
     return p_hat
-    # return p_true
 
 
 # continuos time model
@@ -196,7 +196,7 @@ def output_real(x):
 
 # robust sample based dynamics and output
 p_hat_list = []
-for i in range(20):
+for i in range(20):  # generate 20 randomly purturbed param options
     p_hat_list.append(generate_perturbed_p())
 
 
@@ -208,9 +208,10 @@ def multi_sample_rk4_step(x, u, d, Ns):
         )
     x_plus = cs.SX.zeros(x.shape)
     for i in range(Ns):
-        x_i = x[nx * i : nx * (i + 1), :]
-        x_i_plus = rk4_step(x_i, u, d, p_hat_list[i])
-        # x_i_plus = rk4_step(x_i, u, d, p_true)
+        x_i = x[nx * i : nx * (i + 1), :]  # pull out state for one sample
+        x_i_plus = rk4_step(
+            x_i, u, d, p_hat_list[i]
+        )  # step it with the corresponding p values
         x_plus[nx * i : nx * (i + 1), :] = x_i_plus
     return x_plus
 
@@ -224,7 +225,6 @@ def multi_sample_output(x, Ns):
     for i in range(Ns):
         x_i = x[nx * i : nx * (i + 1), :]
         y_i = output(x_i, p_hat_list[i])
-        # y_i = output(x_i, p_true)
         y[nx * i : nx * (i + 1), :] = y_i
     return y
 

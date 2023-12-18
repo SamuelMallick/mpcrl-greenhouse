@@ -3,7 +3,7 @@ import numpy as np
 
 from envs.model import get_control_bounds, get_model_details, get_y_max, get_y_min
 
-nx, nu, nd, ts = get_model_details()
+nx, nu, nd, ts, steps_per_day = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
 
 

@@ -21,7 +21,7 @@ np.random.seed(1)
 STORE_DATA = False
 PLOT = True
 
-nx, nu, nd, ts = get_model_details()
+nx, nu, nd, ts, steps_per_day = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
@@ -96,7 +96,7 @@ class NominalMpc(Mpc[cs.SX]):
 
 
 days = 2
-ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
+ep_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
 )

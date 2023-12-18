@@ -27,7 +27,7 @@ np.random.seed(1)
 STORE_DATA = False
 PLOT = True
 
-nx, nu, nd, ts = get_model_details()
+nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
@@ -123,7 +123,7 @@ num_episodes = 1
 
 TD = []
 
-sample_mpc = SampleBasedMpc(Ns=2)
+sample_mpc = SampleBasedMpc(Ns=10)
 agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
     level=logging.DEBUG,
