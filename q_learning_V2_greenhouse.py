@@ -46,7 +46,7 @@ class LearningMpc(Mpc[cs.SX]):
     """Non-linear MPC for greenhouse control."""
 
     horizon = 6 * 4  # prediction horizon
-    discount_factor = 1  # TODO add the gamma scaling into the local cost
+    discount_factor = 1
     if len(sys.argv) > 3:
         discount_factor = float(sys.argv[3])
 

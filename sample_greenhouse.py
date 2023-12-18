@@ -123,7 +123,7 @@ num_episodes = 1
 
 TD = []
 
-sample_mpc = SampleBasedMpc(Ns=10)
+sample_mpc = SampleBasedMpc(Ns=2)
 agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
     level=logging.DEBUG,

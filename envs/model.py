@@ -32,7 +32,6 @@ def get_disturbance_profile(init_day: int, days_to_grow: int):
     # an extra days worth added to the profile for the prediction horizon
     if init_day > 310:
         init_day = init_day % 310
-
     # return the disturbance vectors for the number of dyas requested, with one extra for the prediction horizon during the last day
     return d[
         :,
@@ -232,23 +231,39 @@ def multi_sample_output(x, Ns):
 # learning based dynamics
 def rk4_learnable(x, u, d, p_learnable, p_indexes):
     if len(p_hat_list) == 0:
-        raise RuntimeError(
-            "P samples must be generated before using multi_sample_output."
-        )
+        raise RuntimeError("P samples must be generated before use.")
     param_counter = 0
-    p_learnable_full = p_hat_list[0].copy()
-    for i in range(len(p_indexes)):
+    p_learnable_full = p_hat_list[
+        0
+    ].copy()  # use the first perturbed entry as the initial guess for the parameters
+    for i in range(
+        len(p_indexes)
+    ):  # replace the ones that can be learned with symbolic params
         p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
         param_counter += 1
 
     return rk4_step(x, u, d, p_learnable_full)
 
 
+def euler_learnable(x, u, d, p_learnable, p_indexes):
+    if len(p_hat_list) == 0:
+        raise RuntimeError("P samples must be generated before use.")
+    param_counter = 0
+    p_learnable_full = p_hat_list[
+        0
+    ].copy()  # use the first perturbed entry as the initial guess for the parameters
+    for i in range(
+        len(p_indexes)
+    ):  # replace the ones that can be learned with symbolic params
+        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
+        param_counter += 1
+
+    return x + ts * df(x, u, d, p_learnable_full)
+
+
 def output_learnable(x, p_learnable, p_indexes):
     if len(p_hat_list) == 0:
-        raise RuntimeError(
-            "P samples must be generated before using multi_sample_output."
-        )
+        raise RuntimeError("P samples must be generated before use.")
     param_counter = 0
     p_learnable_full = p_hat_list[0].copy()
     for i in range(len(p_indexes)):

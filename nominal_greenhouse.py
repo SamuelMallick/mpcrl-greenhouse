@@ -45,7 +45,7 @@ class NominalMpc(Mpc[cs.SX]):
         self.disturbance("d", nd)
 
         # dynamics
-        # self.set_dynamics(lambda x, u, d: x + ts * df(x, u, d), n_in=3, n_out=1)
+        # self.set_dynamics(lambda x, u, d: x + ts * df_real(x, u, d), n_in=3, n_out=1)
         self.set_dynamics(lambda x, u, d: rk4_step_real(x, u, d), n_in=3, n_out=1)
 
         # other constraints

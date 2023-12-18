@@ -21,7 +21,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     """Continuous time environment for a luttuce greenhouse."""
 
     nx, nu, nd, ts, steps_per_day = get_model_details()
-    disturbance_profile = get_disturbance_profile(init_day=0, days_to_grow=40)
+    disturbance_profile = get_disturbance_profile(
+        init_day=0, days_to_grow=40
+    )  # gets re-called in reset
     disturbance_profile_data = np.empty((4, 0))
     step_counter = 0
 
@@ -70,7 +72,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             [[0.0035], [0.001], [15], [0.008]]
         )  # initial condition used in the robust approach paper - 2022
         self.disturbance_profile = get_disturbance_profile(
-            np.random.randint(0, 300), days_to_grow=self.days_to_grow
+            0, days_to_grow=self.days_to_grow
         )
 
         # take only the disturbance data for the growing days

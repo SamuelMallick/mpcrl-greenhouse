@@ -11,32 +11,35 @@ from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
 from mpcrl import LearnableParameter, LearnableParametersDict
-from mpcrl.core.experience import ExperienceReplay
 from mpcrl.core.schedulers import ExponentialScheduler
 from mpcrl.wrappers.agents import Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
 from envs.model import (
+    euler_learnable,
     get_control_bounds,
     get_initial_perturbed_p,
     get_model_details,
     output_learnable,
     output_real,
-    rk4_learnable,
 )
 from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-STORE_DATA = False
-PLOT = True
+# COMMAND LINE PARAMS: NUM_EPISODES, LEARNING_RATE
+
+STORE_DATA = True
+PLOT = False
 
 nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
 c_y = np.array([10e3])  # reward on yield
+
+num_learnable_p = 28
 
 
 class LearningMpc(Mpc[cs.SX]):
@@ -45,12 +48,13 @@ class LearningMpc(Mpc[cs.SX]):
     horizon = 6 * 4  # prediction horizon
     discount_factor = 1  # TODO add the gamma scaling into the local cost
 
-    p_indexes = [
-        0,
-        2,
-        3,
-        5,
-    ]  # list of indexes in p to which learnable parameters correspond
+    # p_indexes = [
+    #    0,
+    #    2,
+    #    3,
+    #    5,
+    # ]  # list of indexes in p to which learnable parameters correspond
+    p_indexes = [i for i in range(num_learnable_p)]
     w = 1e3 * np.ones((1, nx))  # penalty on constraint violations
 
     # par inits
@@ -60,7 +64,7 @@ class LearningMpc(Mpc[cs.SX]):
         "c_y": c_y,
     }
     p_init = get_initial_perturbed_p()
-    for i in range(4):
+    for i in range(num_learnable_p):
         learnable_pars_init[f"p_{i}"] = np.array([p_init[p_indexes[i]]])
 
     fixed_pars_init = {"d": np.zeros((nx, horizon))}
@@ -84,11 +88,12 @@ class LearningMpc(Mpc[cs.SX]):
         c_u_learn = self.parameter("c_u", (nu,))
         c_y_learn = self.parameter("c_y", (1,))
 
-        p_learnable = [self.parameter(f"p_{i}", (1,)) for i in range(4)]
+        p_learnable = [self.parameter(f"p_{i}", (1,)) for i in range(num_learnable_p)]
 
         # dynamics
         self.set_dynamics(
-            lambda x, u, d: rk4_learnable(x, u, d, p_learnable, self.p_indexes),
+            # lambda x, u, d: rk4_learnable(x, u, d, p_learnable, self.p_indexes),
+            lambda x, u, d: euler_learnable(x, u, d, p_learnable, self.p_indexes),
             n_in=3,
             n_out=1,
         )
@@ -158,7 +163,7 @@ learnable_pars = LearnableParametersDict[cs.SX](
     )
 )
 
-learning_rate = 1e-1
+learning_rate = 1e-3
 if len(sys.argv) > 2:
     learning_rate = float(sys.argv[2])
 agent = Log(  # type: ignore[var-annotated]
@@ -173,12 +178,13 @@ agent = Log(  # type: ignore[var-annotated]
             hessian_type="approx",
             record_td_errors=True,
             exploration=None,
-            experience=ExperienceReplay(
-                maxlen=3 * ep_len,
-                sample_size=int(1.5 * ep_len),
-                include_latest=ep_len,
-                seed=0,
-            ),
+            experience=None,
+            # ExperienceReplay(
+            #    maxlen=3 * ep_len,
+            #    sample_size=int(1.5 * ep_len),
+            #    include_latest=ep_len,
+            #    seed=0,
+            # ),
         )
     ),
     level=logging.DEBUG,
