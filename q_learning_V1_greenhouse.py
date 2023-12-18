@@ -10,7 +10,7 @@ import numpy as np
 from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
-from mpcrl import LearnableParameter, LearnableParametersDict
+from mpcrl import ExperienceReplay, LearnableParameter, LearnableParametersDict
 from mpcrl.core.schedulers import ExponentialScheduler
 from mpcrl.wrappers.agents import Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
@@ -173,18 +173,17 @@ agent = Log(  # type: ignore[var-annotated]
             learnable_parameters=learnable_pars,
             fixed_parameters=mpc.fixed_pars_init,
             discount_factor=mpc.discount_factor,
-            update_strategy=ep_len,
+            update_strategy=1,
             learning_rate=ExponentialScheduler(learning_rate, factor=1),
             hessian_type="approx",
             record_td_errors=True,
             exploration=None,
-            experience=None,
-            # ExperienceReplay(
-            #    maxlen=3 * ep_len,
-            #    sample_size=int(1.5 * ep_len),
-            #    include_latest=ep_len,
-            #    seed=0,
-            # ),
+            experience = ExperienceReplay(
+               maxlen=3 * ep_len,
+               sample_size=int(1.5 * ep_len),
+               include_latest=ep_len,
+               seed=0,
+            ),
         )
     ),
     level=logging.DEBUG,
