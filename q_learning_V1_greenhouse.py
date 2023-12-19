@@ -35,10 +35,10 @@ from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-# COMMAND LINE PARAMS: NUM_EPISODES, LEARNING_RATE
+# COMMAND LINE PARAMS: NUM_EPISODES, LEARNING_RATE, lEARN_ALL_P, RK4_DISC
 
-STORE_DATA = False
-PLOT = True
+STORE_DATA = True
+PLOT = False
 
 num_episodes = 50
 if len(sys.argv) > 1:
@@ -254,7 +254,7 @@ param_dict = {}
 for key, val in agent.updates_history.items():
     param_dict[key] = val
 
-identifier = f"_V1_lr_{learning_rate}_ne_{num_episodes}_"
+identifier = f"_V1_lr_{learning_rate}_ne_{num_episodes}_allp_{LEARN_ALL_P}_rk4_{RK4_DISC}"
 if STORE_DATA:
     with open(
         "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
