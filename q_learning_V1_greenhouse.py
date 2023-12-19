@@ -173,7 +173,7 @@ agent = Log(  # type: ignore[var-annotated]
             learnable_parameters=learnable_pars,
             fixed_parameters=mpc.fixed_pars_init,
             discount_factor=mpc.discount_factor,
-            update_strategy=1,
+            update_strategy=ep_len,
             learning_rate=ExponentialScheduler(learning_rate, factor=1),
             hessian_type="approx",
             record_td_errors=True,
