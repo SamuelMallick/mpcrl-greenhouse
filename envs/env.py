@@ -29,13 +29,16 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
     # cost constants
     c_u = [10, 1, 1]  # penalty on each control signal
-    c_y = 10e3  # reward on yield
-    w = 5e3 * np.array([1, 1, 1, 1])  # penalty on constraint violations
+    c_y = 10e3  # reward on weight
+    c_dy = 100  # reward on step change in weight
+    w = 1e3 * np.array([1, 1, 1, 1])  # penalty on constraint violations
 
     # noise terms for dynamics
     mean = np.zeros((nx, 1))
-    # sd = np.array([[1e-5], [1e-5], [0.1], [1e-5]])
     sd = np.array([[0], [0], [0], [0]])
+
+    # store previous weight for stage cost calculation
+    prev_weight = None
 
     def __init__(self, days_to_grow: int) -> None:
         super().__init__()
@@ -90,15 +93,26 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self, state: npt.NDArray[np.floating], action: npt.NDArray[np.floating]
     ) -> float:
         reward = 0.0
-        y = output_real(state)
+        y = output_real(state)  # get output from current state
         y_max = get_y_max(self.disturbance_profile[:, [self.step_counter]])
         y_min = get_y_min(self.disturbance_profile[:, [self.step_counter]])
+
+        # penalize control inputs
         for i in range(self.nu):
             reward += self.c_u[i] * action[i]
+        # reward step change in weight
+        if self.step_counter > 0:
+            reward -= self.c_dy * (y[0] - self.prev_weight)
+        self.prev_weight = y[0]
+
+        # penalize constraint viols
         reward += self.w @ np.maximum(0, y_min - y)
         reward += self.w @ np.maximum(0, y - y_max)
-        if self.step_counter == self.yield_step:
-            reward -= self.c_y * y[0]
+
+        # reward final yield
+        # if self.step_counter == self.yield_step:
+        #     reward -= self.c_y * y[0]
+
         return reward
 
     def step(
@@ -110,7 +124,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             x0=self.x,
             p=cs.vertcat(action, self.disturbance_profile[:, [self.step_counter]]),
         )["xf"]
-        # x_new = rk4_step(self.x, action, self.disturbance_profile[:, [self.step_counter]])
 
         # to add uncertainty to the dynamics
         model_uncertainty = self.np_random.normal(self.mean, self.sd, (self.nx, 1))
@@ -146,14 +159,14 @@ class GreenhouseAgent(Agent):
 # TODO request bug fix from Fillipo so that the training and evaluation can use the same indexes - at the moment it is okay because we use step counter instead
 class GreenhouseLearningAgent(LstdQLearningAgent):
     # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: Env, episode: int) -> None:
+    def on_episode_start(self, env: Env, episode: int, state) -> None:
         d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
         for k in range(self.V.prediction_horizon + 1):
             self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_episode_start(env, episode)
+        return super().on_episode_start(env, episode, state)
 
     def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[

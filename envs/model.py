@@ -101,7 +101,7 @@ def generate_perturbed_p():
 
     p_hat = p_true.copy()
     for i in range(len(p_hat)):
-        max_pert = p_hat[i] * 0.05
+        max_pert = p_hat[i] * 0.1
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
     return p_hat
 
