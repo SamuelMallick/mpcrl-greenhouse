@@ -9,15 +9,19 @@ plt.rc("text", usetex=True)
 plt.rc("font", size=14)
 plt.style.use("bmh")
 
-num_episodes = 50
+num_episodes = 1
 days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 nx = 4
 nu = 3
+allp = False
+rk4 = False
+lr = 0.0001
 
 with open(
-    # "results/v_2_lr_1e-05_df_0_8.pkl",
-    "results/green_V1_lr_0_001_ne_50.pkl",
+    # f"results/green_V1_lr_{lr}_ne_{num_episodes}_allp_{allp}_rk4_{rk4}.pkl",
+    "results/green_nom.pkl",
+    # "results/green_sample_5.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)
@@ -95,30 +99,21 @@ for i in range(4):
 # for i in range(3):
 #    axs[i].plot(U[:, i])
 
-# parameters
-_, axs = plt.subplots(5, 2, constrained_layout=True, sharex=True)
-axs[0, 0].plot(param_list["V0"])
-axs[0, 0].set_ylabel(r"$V_0$")
-axs[1, 0].plot([param_list["c_u"][k][0] for k in range(num_episodes)])
-axs[1, 0].set_ylabel(r"$cu_1$")
-axs[2, 0].plot([param_list["c_u"][k][1] for k in range(num_episodes)])
-axs[2, 0].set_ylabel(r"$cu_2$")
-axs[3, 0].plot([param_list["c_u"][k][2] for k in range(num_episodes)])
-axs[3, 0].set_ylabel(r"$cu_3$")
-axs[4, 0].plot(param_list["c_y"])
-axs[4, 0].set_ylabel(r"$cy$")
+# parameters - first cost params
+cost_keys = [x for x in list(param_list.keys()) if x.startswith("p") is False]
+if len(cost_keys) > 0:
+    _, axs = plt.subplots(len(cost_keys), 1, constrained_layout=True, sharex=True)
+    for i in range(len(cost_keys)):
+        axs[i].plot(param_list[cost_keys[i]])
+        axs[i].set_ylabel(cost_keys[i])
 
-axs[0, 1].plot(param_list["p_1"])
-axs[0, 1].set_ylabel(r"$p_1$")
-axs[1, 1].plot(param_list["p_2"])
-axs[1, 1].set_ylabel(r"$p_2$")
-axs[2, 1].plot(param_list["p_3"])
-axs[2, 1].set_ylabel(r"$p_3$")
-axs[3, 1].plot(param_list["p_0"])
-axs[3, 1].set_ylabel(r"$p_0$")
-if "c_dy" in param_list.keys():
-    axs[4, 1].plot(param_list["c_dy"])
-    axs[4, 1].set_ylabel(r"$c_dy$")
-
+    param_keys = [x for x in list(param_list.keys()) if x.startswith("p") is True]
+    num_figs = int(np.ceil(len(param_keys) / 5))
+    for j in range(num_figs):
+        _, axs = plt.subplots(5, 1, constrained_layout=True, sharex=True)
+        for i in range(5):
+            if 5 * j + i < len(param_keys):
+                axs[i].plot(param_list[param_keys[5 * j + i]])
+                axs[i].set_ylabel(param_keys[5 * j + i])
 
 plt.show()

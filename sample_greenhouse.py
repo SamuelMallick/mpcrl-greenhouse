@@ -24,7 +24,7 @@ from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-STORE_DATA = False
+STORE_DATA = True
 PLOT = True
 
 nx, nu, nd, ts, _ = get_model_details()
@@ -41,6 +41,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
     discount_factor = 1
 
     def __init__(self, Ns) -> None:
+        w = 1e3 * np.ones((1, nx*Ns))  # penalty on constraint violations
         N = self.horizon
         self.Ns = Ns
         nlp = Nlp[cs.SX](debug=False)
@@ -59,6 +60,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
         self._initial_states["x_0"] = x0
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
+        s, _, _ = self.variable("s", (nx*Ns, N + 1), lb=0)  # slack vars
 
         # dynamics
         self.set_dynamics(
@@ -68,6 +70,10 @@ class SampleBasedMpc(Mpc[cs.SX]):
         # other constraints
         y_min_list = [self.parameter(f"y_min_{k}", (nx * Ns, 1)) for k in range(N + 1)]
         y_max_list = [self.parameter(f"y_max_{k}", (nx * Ns, 1)) for k in range(N + 1)]
+
+        y_0 = multi_sample_output(x[:, [0]], Ns)
+        self.constraint(f"y_min_0", y_0, ">=", y_min_list[0] - s[:, [0]])
+        self.constraint(f"y_max_0", y_0, "<=", y_max_list[0] + s[:, [0]])
         for k in range(1, N):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
@@ -75,17 +81,19 @@ class SampleBasedMpc(Mpc[cs.SX]):
 
             # output constraints
             y_k = multi_sample_output(x[:, [k]], Ns)
-            self.constraint(f"y_min_{k}", y_k, ">=", y_min_list[k])
-            self.constraint(f"y_max_{k}", y_k, "<=", y_max_list[k])
+            self.constraint(f"y_min_{k}", y_k, ">=", y_min_list[k] - s[:, [k]])
+            self.constraint(f"y_max_{k}", y_k, "<=", y_max_list[k] + s[:, [k]])
 
         y_N = multi_sample_output(x[:, [N]], Ns)
-        self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N])
-        self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N])
+        self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N] + s[:, [N]])
+        self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N] + s[:, [N]])
 
         obj = 0
         for k in range(N):
             for j in range(nu):
                 obj += Ns * c_u[j] * u[j, k]
+            obj += w @ s[:, [k]]
+        obj += w @ s[:, [N]]
         for i in range(Ns):
             y_N_i = y_N[nx * i : nx * (i + 1), :]
             obj += -c_y * y_N_i[0]
@@ -114,7 +122,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-days = 2
+days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
@@ -123,7 +131,8 @@ num_episodes = 1
 
 TD = []
 
-sample_mpc = SampleBasedMpc(Ns=2)
+Ns = 5
+sample_mpc = SampleBasedMpc(Ns=Ns)
 agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
     level=logging.DEBUG,
@@ -153,10 +162,9 @@ if PLOT:
     plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
 
 param_dict = {}
-identifier = "e_3_50"
 if STORE_DATA:
     with open(
-        "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
+        f"green_sample_{Ns}_" + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)
