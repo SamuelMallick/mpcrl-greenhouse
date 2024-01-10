@@ -18,7 +18,7 @@ from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-STORE_DATA = False
+STORE_DATA = True
 PLOT = True
 
 nx, nu, nd, ts, steps_per_day = get_model_details()
@@ -51,6 +51,10 @@ class NominalMpc(Mpc[cs.SX]):
         # other constraints
         y_min_list = [self.parameter(f"y_min_{k}", (nx, 1)) for k in range(N + 1)]
         y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
+
+        y_0 = output_real(x[:, [0]])
+        self.constraint(f"y_min_0", y_0, ">=", y_min_list[0])
+        self.constraint(f"y_max_0", y_0, "<=", y_max_list[0])
         for k in range(1, N):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
@@ -95,7 +99,7 @@ class NominalMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-days = 2
+days = 40
 ep_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
@@ -134,10 +138,10 @@ if PLOT:
     plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
 
 param_dict = {}
-identifier = "e_3_50"
+identifier = "nom"
 if STORE_DATA:
     with open(
-        "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
+        "green_" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)
