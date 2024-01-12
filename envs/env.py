@@ -41,8 +41,13 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     # store previous weight for stage cost calculation
     prev_weight = None
 
-    def __init__(self, days_to_grow: int) -> None:
+    def __init__(self, days_to_grow: int, rew_step_yield = True, rew_fin_yield = True, pen_control = True, pen_constraints = True) -> None:
         super().__init__()
+
+        self.rew_step_yield = rew_step_yield
+        self.rew_fin_yield = rew_fin_yield
+        self.pen_control = pen_control
+        self.pen_constraints = pen_constraints
 
         self.days_to_grow = days_to_grow
         self.yield_step = (
@@ -99,23 +104,25 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         y_min = get_y_min(self.disturbance_profile[:, [self.step_counter]])
 
         # penalize control inputs
-        for i in range(self.nu):
-            reward += self.c_u[i] * action[i]
+        if self.pen_control:
+            for i in range(self.nu):
+                reward += self.c_u[i] * action[i]
+
+        if self.rew_step_yield:
         # reward step change in weight
-        if self.step_counter > 0:
-            reward -= self.c_dy * (y[0] - self.prev_weight)
-        self.prev_weight = y[0]
+            if self.step_counter > 0:
+                reward -= self.c_dy * (y[0] - self.prev_weight)
+            self.prev_weight = y[0]
 
-        # penalize constraint viols
-        reward += self.w @ np.maximum(0, y_min - y)
-        reward += self.w @ np.maximum(0, y - y_max)
+        if self.pen_constraints:
+            # penalize constraint viols
+            reward += self.w @ np.maximum(0, y_min - y)
+            reward += self.w @ np.maximum(0, y - y_max)
 
-        if any(np.maximum(0, y - y_max)):
-            pass
-
-        # reward final yield
-        # if self.step_counter == self.yield_step:
-        #     reward -= self.c_y * y[0]
+        if self.rew_fin_yield:
+            # reward final yield
+            if self.step_counter == self.yield_step:
+                reward -= self.c_y * y[0]
 
         return reward
 

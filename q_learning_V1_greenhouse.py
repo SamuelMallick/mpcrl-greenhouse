@@ -35,23 +35,38 @@ from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-# COMMAND LINE PARAMS: NUM_EPISODES, LEARNING_RATE, lEARN_ALL_P, RK4_DISC
+# COMMAND LINE PARAMS: NUM_DAYS, NUM_EPISODES LEARNING_RATE, lEARN_ALL_P, RK4_DISC, REW_STEP_YIELD, REW_FIN_YIELD, PEN_CONTROL, PEN_CONSTRAINTS
 
 STORE_DATA = True
 PLOT = False
+REW_STEP_YIELD = True
+REW_FIN_YIELD = False
+PEN_CONTROL = False
+PEN_CONSTRAINTS = False
 
-num_episodes = 50
+num_days = 40
 if len(sys.argv) > 1:
-    num_episodes = int(sys.argv[1])
-learning_rate = 1e-3
+    num_days = int(sys.argv[1])
+num_episodes = 50
 if len(sys.argv) > 2:
-    learning_rate = float(sys.argv[2])
-LEARN_ALL_P = True
+    num_episodes = int(sys.argv[2])
+learning_rate = 1e-3
 if len(sys.argv) > 3:
-    LEARN_ALL_P = bool(int(sys.argv[3]))
-RK4_DISC = False
+    learning_rate = float(sys.argv[3])
+LEARN_ALL_P = True
 if len(sys.argv) > 4:
-    RK4_DISC = bool(int(sys.argv[4]))
+    LEARN_ALL_P = bool(int(sys.argv[4]))
+RK4_DISC = False
+if len(sys.argv) > 5:
+    RK4_DISC = bool(int(sys.argv[5]))
+if len(sys.argv) > 6:
+    REW_STEP_YIELD = bool(int(sys.argv[6]))
+if len(sys.argv) > 7:
+    REW_FIN_YIELD = bool(int(sys.argv[7]))
+if len(sys.argv) > 8:
+    PEN_CONTROL = bool(int(sys.argv[8]))
+if len(sys.argv) > 9:
+    PEN_CONSTRAINTS = bool(int(sys.argv[9]))
 
 nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
@@ -139,30 +154,37 @@ class LearningMpc(Mpc[cs.SX]):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
             self.constraint(f"du_leq_{k}", u[:, [k]] - u[:, [k - 1]], ">=", -du_lim)
-
-            # output constraints
+            
             y_k.append(output_learnable(x[:, [k]], p_learnable, self.p_indexes))
-            self.constraint(f"y_min_{k}", y_k[k], ">=", y_min_list[k] - s[:, [k]])
-            self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
+            if PEN_CONSTRAINTS:
+                # output constraints
+                self.constraint(f"y_min_{k}", y_k[k], ">=", y_min_list[k] - s[:, [k]])
+                self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
 
         y_N = output_learnable(x[:, [N]], p_learnable, self.p_indexes)
-        self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N] - s[:, [N]])
-        self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N] + s[:, [N]])
+        if PEN_CONSTRAINTS:
+            self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N] - s[:, [N]])
+            self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N] + s[:, [N]])
 
         obj = V0_learn
         # penalize control effort and constraint viol
         for k in range(N):
             for j in range(nu):
-                obj += (self.discount_factor**k) * c_u_learn[j] * u[j, k]
-            obj += (self.discount_factor**k) * self.w @ s[:, [k]]
-        obj += (self.discount_factor**N) * self.w @ s[:, [N]]
+                if PEN_CONTROL:
+                    obj += (self.discount_factor**k) * c_u_learn[j] * u[j, k]
+            if PEN_CONSTRAINTS:
+                obj += (self.discount_factor**k) * self.w @ s[:, [k]]
+        if PEN_CONSTRAINTS:
+            obj += (self.discount_factor**N) * self.w @ s[:, [N]]
         # reward step wise weight increase
-        for k in range(1, N):
-            obj += (
-                -(self.discount_factor**k) * c_dy_learn * (y_k[k][0] - y_k[k - 1][0])
-            )
-        # reward final weight
-        obj += -(self.discount_factor**N) * c_y_learn * y_N[0]
+        if REW_STEP_YIELD:
+            for k in range(1, N):
+                obj += (
+                    -(self.discount_factor**k) * c_dy_learn * (y_k[k][0] - y_k[k - 1][0])
+                )
+        if REW_FIN_YIELD:
+            # reward final weight
+            obj += -(self.discount_factor**N) * c_y_learn * y_N[0]
         self.minimize(obj)
 
         # solver
@@ -188,10 +210,9 @@ class LearningMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-days = 40
-ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
+ep_len = num_days * 24 * 4  # 40 days of 15 minute timesteps
 env = MonitorEpisodes(
-    TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
+    TimeLimit(LettuceGreenHouse(days_to_grow=num_days), max_episode_steps=int(ep_len))
 )
 
 mpc = LearningMpc()
