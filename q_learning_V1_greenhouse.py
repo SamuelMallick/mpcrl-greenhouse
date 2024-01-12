@@ -278,7 +278,7 @@ for key, val in agent.updates_history.items():
     param_dict[key] = val
 
 identifier = (
-    f"_V1_lr_{learning_rate}_ne_{num_episodes}_allp_{LEARN_ALL_P}_rk4_{RK4_DISC}"
+    f"_V1_lr_{learning_rate}_ne_{num_episodes}_nd_{num_days}_allp_{LEARN_ALL_P}_rk4_{RK4_DISC}_reward_{REW_STEP_YIELD}_{REW_FIN_YIELD}_{PEN_CONTROL}_{PEN_CONSTRAINTS}"
 )
 if STORE_DATA:
     with open(
