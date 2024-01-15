@@ -148,8 +148,9 @@ class LearningMpc(Mpc[cs.SX]):
         y_min_list = [self.parameter(f"y_min_{k}", (nx, 1)) for k in range(N + 1)]
         y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
         y_k = [output_learnable(x[:, [0]], p_learnable, self.p_indexes)]
-        self.constraint(f"y_min_0", y_k[0], ">=", y_min_list[0] - s[:, [0]])
-        self.constraint(f"y_max_0", y_k[0], "<=", y_max_list[0] + s[:, [0]])
+        if PEN_CONSTRAINTS:
+            self.constraint(f"y_min_0", y_k[0], ">=", y_min_list[0] - s[:, [0]])
+            self.constraint(f"y_max_0", y_k[0], "<=", y_max_list[0] + s[:, [0]])
         for k in range(1, N):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
