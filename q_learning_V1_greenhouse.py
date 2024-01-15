@@ -35,7 +35,7 @@ from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-# COMMAND LINE PARAMS: NUM_DAYS, NUM_EPISODES LEARNING_RATE, lEARN_ALL_P, RK4_DISC, REW_STEP_YIELD, REW_FIN_YIELD, PEN_CONTROL, PEN_CONSTRAINTS
+# COMMAND LINE PARAMS: NUM_DAYS, NUM_EPISODES, LEARNING_RATE, lEARN_ALL_P, RK4_DISC, REW_STEP_YIELD, REW_FIN_YIELD, PEN_CONTROL, PEN_CONSTRAINTS
 
 STORE_DATA = True
 PLOT = False
@@ -154,7 +154,7 @@ class LearningMpc(Mpc[cs.SX]):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
             self.constraint(f"du_leq_{k}", u[:, [k]] - u[:, [k - 1]], ">=", -du_lim)
-            
+
             y_k.append(output_learnable(x[:, [k]], p_learnable, self.p_indexes))
             if PEN_CONSTRAINTS:
                 # output constraints
@@ -180,7 +180,9 @@ class LearningMpc(Mpc[cs.SX]):
         if REW_STEP_YIELD:
             for k in range(1, N):
                 obj += (
-                    -(self.discount_factor**k) * c_dy_learn * (y_k[k][0] - y_k[k - 1][0])
+                    -(self.discount_factor**k)
+                    * c_dy_learn
+                    * (y_k[k][0] - y_k[k - 1][0])
                 )
         if REW_FIN_YIELD:
             # reward final weight
@@ -212,7 +214,16 @@ class LearningMpc(Mpc[cs.SX]):
 
 ep_len = num_days * 24 * 4  # 40 days of 15 minute timesteps
 env = MonitorEpisodes(
-    TimeLimit(LettuceGreenHouse(days_to_grow=num_days), max_episode_steps=int(ep_len))
+    TimeLimit(
+        LettuceGreenHouse(
+            days_to_grow=num_days,
+            rew_step_yield=REW_STEP_YIELD,
+            rew_fin_yield=REW_FIN_YIELD,
+            pen_control=PEN_CONTROL,
+            pen_constraints=PEN_CONSTRAINTS,
+        ),
+        max_episode_steps=int(ep_len),
+    )
 )
 
 mpc = LearningMpc()
@@ -277,9 +288,7 @@ param_dict = {}
 for key, val in agent.updates_history.items():
     param_dict[key] = val
 
-identifier = (
-    f"_V1_lr_{learning_rate}_ne_{num_episodes}_nd_{num_days}_allp_{LEARN_ALL_P}_rk4_{RK4_DISC}_reward_{REW_STEP_YIELD}_{REW_FIN_YIELD}_{PEN_CONTROL}_{PEN_CONSTRAINTS}"
-)
+identifier = f"_V1_lr_{learning_rate}_ne_{num_episodes}_nd_{num_days}_allp_{LEARN_ALL_P}_rk4_{RK4_DISC}_reward_{REW_STEP_YIELD}_{REW_FIN_YIELD}_{PEN_CONTROL}_{PEN_CONSTRAINTS}"
 if STORE_DATA:
     with open(
         "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",

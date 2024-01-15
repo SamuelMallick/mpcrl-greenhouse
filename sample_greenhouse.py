@@ -41,7 +41,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
     discount_factor = 1
 
     def __init__(self, Ns) -> None:
-        w = 1e3 * np.ones((1, nx*Ns))  # penalty on constraint violations
+        w = 1e3 * np.ones((1, nx * Ns))  # penalty on constraint violations
         N = self.horizon
         self.Ns = Ns
         nlp = Nlp[cs.SX](debug=False)
@@ -60,7 +60,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
         self._initial_states["x_0"] = x0
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
-        s, _, _ = self.variable("s", (nx*Ns, N + 1), lb=0)  # slack vars
+        s, _, _ = self.variable("s", (nx * Ns, N + 1), lb=0)  # slack vars
 
         # dynamics
         self.set_dynamics(

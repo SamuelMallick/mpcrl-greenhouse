@@ -41,7 +41,14 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     # store previous weight for stage cost calculation
     prev_weight = None
 
-    def __init__(self, days_to_grow: int, rew_step_yield = True, rew_fin_yield = True, pen_control = True, pen_constraints = True) -> None:
+    def __init__(
+        self,
+        days_to_grow: int,
+        rew_step_yield=True,
+        rew_fin_yield=True,
+        pen_control=True,
+        pen_constraints=True,
+    ) -> None:
         super().__init__()
 
         self.rew_step_yield = rew_step_yield
@@ -109,7 +116,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 reward += self.c_u[i] * action[i]
 
         if self.rew_step_yield:
-        # reward step change in weight
+            # reward step change in weight
             if self.step_counter > 0:
                 reward -= self.c_dy * (y[0] - self.prev_weight)
             self.prev_weight = y[0]
