@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 import casadi as cs
 import gymnasium as gym
@@ -9,6 +9,7 @@ from mpcrl import Agent, LstdQLearningAgent
 
 from envs.model import (
     df_real,
+    euler_real,
     get_disturbance_profile,
     get_model_details,
     get_y_max,
@@ -44,12 +45,15 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     def __init__(
         self,
         days_to_grow: int,
+        model_type: Literal["nonlinear", "rk4", "euler"],
         rew_step_yield=True,
         rew_fin_yield=True,
         pen_control=True,
         pen_constraints=True,
     ) -> None:
         super().__init__()
+
+        self.model_type = model_type
 
         self.rew_step_yield = rew_step_yield
         self.rew_fin_yield = rew_fin_yield
@@ -139,17 +143,25 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         """Steps the system."""
         r = float(self.get_stage_cost(self.x, action))
 
-        x_new = rk4_step_real(
-            self.x, action, self.disturbance_profile[:, [self.step_counter]]
-        )
-
-        # x_new = self.integrator(
-        #     x0=self.x,
-        #     p=cs.vertcat(action, self.disturbance_profile[:, [self.step_counter]]),
-        # )["xf"]
+        if self.model_type == "euler":
+            x_new = euler_real(
+                self.x, action, self.disturbance_profile[:, [self.step_counter]]
+            )
+        elif self.model_type == "rk4":
+            x_new = rk4_step_real(
+                self.x, action, self.disturbance_profile[:, [self.step_counter]]
+            )
+        elif self.model_type == "nonlinear":
+            x_new = self.integrator(
+                x0=self.x,
+                p=cs.vertcat(action, self.disturbance_profile[:, [self.step_counter]]),
+            )["xf"]
+        else:
+            raise RuntimeError(f"{self.model_type} is not a valid model option.")
 
         # to add uncertainty to the dynamics
-        self.np_random.normal(self.mean, self.sd, (self.nx, 1))
+        # self.np_random.normal(self.mean, self.sd, (self.nx, 1))
+
         self.x = x_new  # + model_uncertainty
         self.step_counter += 1
         return x_new, r, False, False, {}

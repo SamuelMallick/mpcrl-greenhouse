@@ -184,6 +184,11 @@ def df_real(x, u, d):
     return df(x, u, d, p_true)
 
 
+def euler_real(x, u, d):
+    """Get euler equation for state update with accurate parameters"""
+    return x + ts * df_real(x, u, d)
+
+
 def rk4_step_real(x, u, d):
     """Get discrete RK4 difference equation for state with accurate parameters"""
     return rk4_step(x, u, d, p_true)
