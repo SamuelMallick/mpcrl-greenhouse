@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pickle
+from typing import Literal
 
 import casadi as cs
 
@@ -13,7 +14,13 @@ from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseAgent, LettuceGreenHouse
-from envs.model import get_control_bounds, get_model_details, output_real, rk4_step_real
+from envs.model import (
+    df_real,
+    rk4_step_real,
+    get_control_bounds,
+    get_model_details,
+    output_real,
+)
 from plot_green import plot_greenhouse
 
 np.random.seed(1)
@@ -26,6 +33,7 @@ u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
 c_y = np.array([10e3])  # reward on yield
+w = 1e3 * np.ones((1, nx))  # penalty on constraint violations
 
 
 class NominalMpc(Mpc[cs.SX]):
@@ -34,27 +42,36 @@ class NominalMpc(Mpc[cs.SX]):
     horizon = 6 * 4  # prediction horizon
     discount_factor = 1
 
-    def __init__(self) -> None:
+    def __init__(self, prediction_model: Literal["euler", "rk4"] = "rk4") -> None:
         N = self.horizon
         nlp = Nlp[cs.SX](debug=False)
         super().__init__(nlp, N)
 
-        # variables (state, action, slack)
+        # variables (state, action, dist, slack)
         x, _ = self.state("x", nx)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
+        s, _, _ = self.variable("s", (nx, N + 1), lb=0)  # slack vars
 
         # dynamics
-        # self.set_dynamics(lambda x, u, d: x + ts * df_real(x, u, d), n_in=3, n_out=1)
-        self.set_dynamics(lambda x, u, d: rk4_step_real(x, u, d), n_in=3, n_out=1)
+        if prediction_model == "euler":
+            self.set_dynamics(
+                lambda x, u, d: x + ts * df_real(x, u, d), n_in=3, n_out=1
+            )
+        elif prediction_model == "rk4":
+            self.set_dynamics(lambda x, u, d: rk4_step_real(x, u, d), n_in=3, n_out=1)
+        else:
+            raise RuntimeError(
+                f"{prediction_model} is not a valid prediction model option."
+            )
 
         # other constraints
         y_min_list = [self.parameter(f"y_min_{k}", (nx, 1)) for k in range(N + 1)]
         y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
 
         y_0 = output_real(x[:, [0]])
-        self.constraint(f"y_min_0", y_0, ">=", y_min_list[0])
-        self.constraint(f"y_max_0", y_0, "<=", y_max_list[0])
+        self.constraint(f"y_min_0", y_0, ">=", y_min_list[0] - s[:, [0]])
+        self.constraint(f"y_max_0", y_0, "<=", y_max_list[0] + s[:, [0]])
         for k in range(1, N):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
@@ -62,17 +79,20 @@ class NominalMpc(Mpc[cs.SX]):
 
             # output constraints
             y_k = output_real(x[:, [k]])
-            self.constraint(f"y_min_{k}", y_k, ">=", y_min_list[k])
-            self.constraint(f"y_max_{k}", y_k, "<=", y_max_list[k])
+            self.constraint(f"y_min_{k}", y_k, ">=", y_min_list[k] - s[:, [k]])
+            self.constraint(f"y_max_{k}", y_k, "<=", y_max_list[k] + s[:, [k]])
 
         y_N = output_real(x[:, [N]])
-        self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N])
-        self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N])
+        self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N] - s[:, [N]])
+        self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N] + s[:, [N]])
 
         obj = 0
         for k in range(N):
+            obj += (self.discount_factor**k) * w @ s[:, [k]]
             for j in range(nu):
-                obj += c_u[j] * u[j, k]
+                obj += (self.discount_factor**k) * c_u[j] * u[j, k]
+
+        obj += (self.discount_factor**N) * w @ s[:, [N]]
         obj += -c_y * y_N[0]
         self.minimize(obj)
 
@@ -102,13 +122,16 @@ class NominalMpc(Mpc[cs.SX]):
 days = 40
 ep_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
-    TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
+    TimeLimit(
+        LettuceGreenHouse(days_to_grow=days, model_type="nonlinear"),
+        max_episode_steps=int(ep_len),
+    )
 )
 num_episodes = 1
 
 TD = []
 
-mpc = NominalMpc()
+mpc = NominalMpc(prediction_model="euler")
 agent = Log(
     GreenhouseAgent(mpc, {}),
     level=logging.DEBUG,
@@ -138,7 +161,7 @@ if PLOT:
     plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
 
 param_dict = {}
-identifier = "nom"
+identifier = "nom_pred_eul_real_rk4"
 if STORE_DATA:
     with open(
         "green_" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
