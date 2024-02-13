@@ -1,4 +1,4 @@
-import datetime
+import importlib
 import logging
 import pickle
 import sys
@@ -10,14 +10,7 @@ import numpy as np
 from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
-from mpcrl import (
-    ExperienceReplay,
-    LearnableParameter,
-    LearnableParametersDict,
-    UpdateStrategy,
-    optim,
-)
-from mpcrl.core.schedulers import ExponentialScheduler
+from mpcrl import LearnableParameter, LearnableParametersDict
 from mpcrl.wrappers.agents import Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
 
@@ -35,56 +28,33 @@ from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-# COMMAND LINE PARAMS: NUM_DAYS, NUM_EPISODES, LEARNING_RATE, lEARN_ALL_P, RK4_DISC, REW_STEP_YIELD, REW_FIN_YIELD, PEN_CONTROL, PEN_CONSTRAINTS
-
 STORE_DATA = True
 PLOT = False
-REW_STEP_YIELD = True
-REW_FIN_YIELD = False
-PEN_CONTROL = False
-PEN_CONSTRAINTS = False
 
-num_days = 40
+# if a config file passed on command line, otherwise use dedault config file
 if len(sys.argv) > 1:
-    num_days = int(sys.argv[1])
-num_episodes = 50
-if len(sys.argv) > 2:
-    num_episodes = int(sys.argv[2])
-learning_rate = 1e-3
-if len(sys.argv) > 3:
-    learning_rate = float(sys.argv[3])
-LEARN_ALL_P = True
-if len(sys.argv) > 4:
-    LEARN_ALL_P = bool(int(sys.argv[4]))
-RK4_DISC = False
-if len(sys.argv) > 5:
-    RK4_DISC = bool(int(sys.argv[5]))
-if len(sys.argv) > 6:
-    REW_STEP_YIELD = bool(int(sys.argv[6]))
-if len(sys.argv) > 7:
-    REW_FIN_YIELD = bool(int(sys.argv[7]))
-if len(sys.argv) > 8:
-    PEN_CONTROL = bool(int(sys.argv[8]))
-if len(sys.argv) > 9:
-    PEN_CONSTRAINTS = bool(int(sys.argv[9]))
+    config_file = sys.argv[1]
+    mod = importlib.import_module(f"test_configs.{config_file}")
+    test = mod.Test()
+else:
+    from test_configs.test_9 import Test
+
+    test = Test()
+
+# create test objecttest = Test()
 
 nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
-
-c_u = np.array([10, 1, 1])  # penalty on each control signal
-c_y = np.array([1000])  # reward on final weight
-c_dy = np.array([100])  # reward on step change in weight
 
 
 class LearningMpc(Mpc[cs.SX]):
     """Non-linear MPC for greenhouse control."""
 
-    horizon = 6 * 4  # prediction horizon
-    discount_factor = 0.99  # discount factor
-    w = 1e3 * np.ones((1, nx))  # penalty on constraint violations
+    horizon = test.horizon
+    discount_factor = test.discount_factor
 
     # list of indexes in p to which learnable parameters correspond
-    if LEARN_ALL_P:
+    if test.learn_all_p:
         num_learnable_p = 28
         p_indexes = [i for i in range(num_learnable_p)]
     else:
@@ -96,48 +66,49 @@ class LearningMpc(Mpc[cs.SX]):
             5,
         ]
 
-    # learnable pars init - cost terms and unknwon dynamics parameters
-    learnable_pars_init = {
-        "V0": np.zeros((1,)),
-        "c_u": c_u,
-        "c_y": c_y,
-        "c_dy": c_dy,
-    }
+    # add dynamics params to learnable pars init
+    learnable_pars_init = test.learnable_pars_init
     p_init = get_initial_perturbed_p()
     for i in range(num_learnable_p):
         learnable_pars_init[f"p_{i}"] = np.array([p_init[p_indexes[i]]])
 
-    # fixed pars init - disturbance prediction and output constraints
-    fixed_pars_init = {"d": np.zeros((nx, horizon))}
+    # add disturbance prediction and output constraints to fixed pars
+    fixed_pars = test.fixed_pars
+    fixed_pars["d"] = np.zeros((nx, horizon))
     for k in range(horizon + 1):
-        fixed_pars_init[f"y_min_{k}"] = np.zeros((nx, 1))
-        fixed_pars_init[f"y_max_{k}"] = np.zeros((nx, 1))
+        fixed_pars[f"y_min_{k}"] = np.zeros((nx, 1))
+        fixed_pars[f"y_max_{k}"] = np.zeros((nx, 1))
 
     def __init__(self) -> None:
         N = self.horizon
         nlp = Nlp[cs.SX](debug=False)
         super().__init__(nlp, N)
 
-        # variables (state, action, slack)
+        # variables (state, action, dist, slack)
         x, _ = self.state("x", nx)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
         s, _, _ = self.variable("s", (nx, N + 1), lb=0)  # slack vars
 
         # init parameters
-        V0_learn = self.parameter("V0", (1,))
-        c_u_learn = self.parameter("c_u", (nu,))
-        c_dy_learn = self.parameter("c_dy", (1,))
-        c_y_learn = self.parameter("c_y", (1,))
+        V0 = self.parameter("V0", (1,))
+        c_u = self.parameter("c_u", (nu,))
+        c_dy = self.parameter("c_dy", (1,))
+        c_y = self.parameter("c_y", (1,))
+        w = self.parameter("w", (1, 4))
         p_learnable = [
             self.parameter(f"p_{i}", (1,)) for i in range(self.num_learnable_p)
         ]
 
         # dynamics
-        if RK4_DISC:
+        if test.prediction_model == "rk4":
             dynam = rk4_learnable
-        else:
+        elif test.prediction_model == "euler":
             dynam = euler_learnable
+        else:
+            raise ValueError(
+                f"{test.prediction_model} is not a valid prediction model."
+            )
         self.set_dynamics(
             lambda x, u, d: dynam(x, u, d, p_learnable, self.p_indexes),
             n_in=3,
@@ -148,46 +119,37 @@ class LearningMpc(Mpc[cs.SX]):
         y_min_list = [self.parameter(f"y_min_{k}", (nx, 1)) for k in range(N + 1)]
         y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
         y_k = [output_learnable(x[:, [0]], p_learnable, self.p_indexes)]
-        if PEN_CONSTRAINTS:
-            self.constraint(f"y_min_0", y_k[0], ">=", y_min_list[0] - s[:, [0]])
-            self.constraint(f"y_max_0", y_k[0], "<=", y_max_list[0] + s[:, [0]])
+
+        self.constraint(f"y_min_0", y_k[0], ">=", y_min_list[0] - s[:, [0]])
+        self.constraint(f"y_max_0", y_k[0], "<=", y_max_list[0] + s[:, [0]])
         for k in range(1, N):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
             self.constraint(f"du_leq_{k}", u[:, [k]] - u[:, [k - 1]], ">=", -du_lim)
 
+        for k in range(1, N + 1):
             y_k.append(output_learnable(x[:, [k]], p_learnable, self.p_indexes))
-            if PEN_CONSTRAINTS:
-                # output constraints
-                self.constraint(f"y_min_{k}", y_k[k], ">=", y_min_list[k] - s[:, [k]])
-                self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
+            # output constraints
+            self.constraint(f"y_min_{k}", y_k[k], ">=", y_min_list[k] - s[:, [k]])
+            self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
 
-        y_N = output_learnable(x[:, [N]], p_learnable, self.p_indexes)
-        if PEN_CONSTRAINTS:
-            self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N] - s[:, [N]])
-            self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N] + s[:, [N]])
-
-        obj = V0_learn
-        # penalize control effort and constraint viol
+        obj = V0
+        # penalize control effort
         for k in range(N):
             for j in range(nu):
-                if PEN_CONTROL:
-                    obj += (self.discount_factor**k) * c_u_learn[j] * u[j, k]
-            if PEN_CONSTRAINTS:
-                obj += (self.discount_factor**k) * self.w @ s[:, [k]]
-        if PEN_CONSTRAINTS:
-            obj += (self.discount_factor**N) * self.w @ s[:, [N]]
+                obj += (self.discount_factor**k) * c_u[j] * u[j, k]
+
+        # penalize constraint violations
+        for k in range(N + 1):
+            obj += (self.discount_factor**k) * w @ s[:, [k]]
+
         # reward step wise weight increase
-        if REW_STEP_YIELD:
-            for k in range(1, N):
-                obj += (
-                    -(self.discount_factor**k)
-                    * c_dy_learn
-                    * (y_k[k][0] - y_k[k - 1][0])
-                )
-        if REW_FIN_YIELD:
-            # reward final weight
-            obj += -(self.discount_factor**N) * c_y_learn * y_N[0]
+        for k in range(1, N + 1):
+            obj += -(self.discount_factor**k) * c_dy * (y_k[k][0] - y_k[k - 1][0])
+
+        # reward final weight
+        obj += -(self.discount_factor ** (N + 1)) * c_y * y_k[N][0]
+
         self.minimize(obj)
 
         # solver
@@ -213,15 +175,11 @@ class LearningMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-ep_len = num_days * 24 * 4  # 40 days of 15 minute timesteps
+ep_len = test.ep_len
 env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(
-            days_to_grow=num_days,
-            rew_step_yield=REW_STEP_YIELD,
-            rew_fin_yield=REW_FIN_YIELD,
-            pen_control=PEN_CONTROL,
-            pen_constraints=PEN_CONSTRAINTS,
+            days_to_grow=test.num_days, model_type=test.base_model, rl_cost=test.rl_cost
         ),
         max_episode_steps=int(ep_len),
     )
@@ -239,21 +197,14 @@ agent = Log(  # type: ignore[var-annotated]
     RecordUpdates(
         GreenhouseLearningAgent(
             mpc=mpc,
-            update_strategy=UpdateStrategy(int(ep_len / 2), skip_first=2),
+            update_strategy=test.update_strategy,
             discount_factor=mpc.discount_factor,
-            optimizer=optim.NetwonMethod(
-                learning_rate=ExponentialScheduler(learning_rate, factor=1)
-            ),
+            optimizer=test.optimizer,
             learnable_parameters=learnable_pars,
-            fixed_parameters=mpc.fixed_pars_init,
-            exploration=None,
-            experience=ExperienceReplay(
-                maxlen=10 * ep_len,
-                sample_size=3 * ep_len,
-                include_latest=ep_len,
-                seed=0,
-            ),
-            hessian_type="approx",
+            fixed_parameters=mpc.fixed_pars,
+            exploration=test.exploration,
+            experience=test.experience,
+            hessian_type=test.hessian_type,
             record_td_errors=True,
         )
     ),
@@ -261,14 +212,14 @@ agent = Log(  # type: ignore[var-annotated]
     log_frequencies={"on_timestep_end": 1},
 )
 # evaluate train
-agent.train(env=env, episodes=num_episodes, seed=1, raises=False)
+agent.train(env=env, episodes=test.num_episodes, seed=1, raises=False)
 
 # extract data
 TD = np.squeeze(agent.td_errors)
 if len(env.observations) > 0:
-    X = np.hstack([env.observations[i].squeeze().T for i in range(num_episodes)]).T
-    U = np.hstack([env.actions[i].squeeze().T for i in range(num_episodes)]).T
-    R = np.hstack([env.rewards[i].squeeze().T for i in range(num_episodes)]).T
+    X = np.hstack([env.observations[i].squeeze().T for i in range(test.num_episodes)]).T
+    U = np.hstack([env.actions[i].squeeze().T for i in range(test.num_episodes)]).T
+    R = np.hstack([env.rewards[i].squeeze().T for i in range(test.num_episodes)]).T
 else:
     X = np.squeeze(env.ep_observations)
     U = np.squeeze(env.ep_actions)
@@ -276,23 +227,25 @@ else:
 
 print(f"Return = {sum(R.squeeze())}")
 
-R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
-TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
+R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(test.num_episodes)]
+TD_eps = [
+    sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(test.num_episodes)
+]
 # generate output
 y = np.asarray([output_real(X[k, :]) for k in range(X.shape[0])]).squeeze()
 d = env.disturbance_profile_data
 
 if PLOT:
-    plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
+    plot_greenhouse(X, U, y, d, TD, R, test.num_episodes, ep_len)
 
 param_dict = {}
 for key, val in agent.updates_history.items():
     param_dict[key] = val
 
-identifier = f"_V1_lr_{learning_rate}_ne_{num_episodes}_nd_{num_days}_allp_{LEARN_ALL_P}_rk4_{RK4_DISC}_reward_{REW_STEP_YIELD}_{REW_FIN_YIELD}_{PEN_CONTROL}_{PEN_CONSTRAINTS}"
+identifier = test.test_ID
 if STORE_DATA:
     with open(
-        "green" + identifier + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
+        f"{identifier}.pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)

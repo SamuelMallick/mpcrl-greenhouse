@@ -29,12 +29,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     disturbance_profile_data = np.empty((4, 0))
     step_counter = 0
 
-    # cost constants
-    c_u = [10, 1, 1]  # penalty on each control signal
-    c_y = 10e3  # reward on weight
-    c_dy = 100  # reward on step change in weight
-    w = 1e3 * np.array([1, 1, 1, 1])  # penalty on constraint violations
-
     # noise terms for dynamics
     mean = np.zeros((nx, 1))
     sd = np.array([[0], [0], [0], [0]])
@@ -46,19 +40,15 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self,
         days_to_grow: int,
         model_type: Literal["nonlinear", "rk4", "euler"],
-        rew_step_yield=True,
-        rew_fin_yield=True,
-        pen_control=True,
-        pen_constraints=True,
+        rl_cost: dict,
     ) -> None:
         super().__init__()
 
         self.model_type = model_type
-
-        self.rew_step_yield = rew_step_yield
-        self.rew_fin_yield = rew_fin_yield
-        self.pen_control = pen_control
-        self.pen_constraints = pen_constraints
+        self.c_u = rl_cost.pop("c_u", [100, 1, 1])
+        self.c_y = rl_cost.pop("c_y", 1000)
+        self.c_dy = rl_cost.pop("c_dy", 100)
+        self.w = rl_cost.pop("w", 1e3 * np.ones((1, 4)))
 
         self.days_to_grow = days_to_grow
         self.yield_step = (
@@ -115,25 +105,21 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         y_min = get_y_min(self.disturbance_profile[:, [self.step_counter]])
 
         # penalize control inputs
-        if self.pen_control:
-            for i in range(self.nu):
-                reward += self.c_u[i] * action[i]
+        for i in range(self.nu):
+            reward += self.c_u[i] * action[i]
 
-        if self.rew_step_yield:
-            # reward step change in weight
-            if self.step_counter > 0:
-                reward -= self.c_dy * (y[0] - self.prev_weight)
-            self.prev_weight = y[0]
+        # reward step change in weight
+        if self.step_counter > 0:
+            reward -= self.c_dy * (y[0] - self.prev_weight)
+        self.prev_weight = y[0]
 
-        if self.pen_constraints:
-            # penalize constraint viols
-            reward += self.w @ np.maximum(0, y_min - y)
-            reward += self.w @ np.maximum(0, y - y_max)
+        # penalize constraint viols
+        reward += self.w @ np.maximum(0, y_min - y)
+        reward += self.w @ np.maximum(0, y - y_max)
 
-        if self.rew_fin_yield:
-            # reward final yield
-            if self.step_counter == self.yield_step:
-                reward -= self.c_y * y[0]
+        # reward final yield
+        if self.step_counter == self.yield_step:
+            reward -= self.c_y * y[0]
 
         return reward
 
