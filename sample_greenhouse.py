@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pickle
+from typing import Literal
 
 import casadi as cs
 
@@ -18,6 +19,7 @@ from envs.model import (
     get_model_details,
     multi_sample_output,
     multi_sample_rk4_step,
+    multi_sample_euler_step,
     output_real,
 )
 from plot_green import plot_greenhouse
@@ -40,14 +42,13 @@ class SampleBasedMpc(Mpc[cs.SX]):
     horizon = 6 * 4  # prediction horizon
     discount_factor = 1
 
-    def __init__(self, Ns) -> None:
+    def __init__(self, Ns, prediction_model: Literal["euler", "rk4"] = "rk4") -> None:
         w = 1e3 * np.ones((1, nx * Ns))  # penalty on constraint violations
         N = self.horizon
         self.Ns = Ns
         nlp = Nlp[cs.SX](debug=False)
         super().__init__(nlp, N)
 
-        # variables (state, action, slack)
         # state needs to be done manually as we have one state per scenario
         x = self.nlp.variable(
             "x",
@@ -63,9 +64,18 @@ class SampleBasedMpc(Mpc[cs.SX]):
         s, _, _ = self.variable("s", (nx * Ns, N + 1), lb=0)  # slack vars
 
         # dynamics
-        self.set_dynamics(
-            lambda x, u, d: multi_sample_rk4_step(x, u, d, Ns), n_in=3, n_out=1
-        )
+        if prediction_model == "euler":
+            self.set_dynamics(
+                lambda x, u, d: multi_sample_euler_step(x, u, d, Ns), n_in=3, n_out=1
+            )
+        elif prediction_model == "rk4":
+            self.set_dynamics(
+                lambda x, u, d: multi_sample_rk4_step(x, u, d, Ns), n_in=3, n_out=1
+            )
+        else:
+            raise RuntimeError(
+                f"{prediction_model} is not a valid prediction model option."
+            )
 
         # other constraints
         y_min_list = [self.parameter(f"y_min_{k}", (nx * Ns, 1)) for k in range(N + 1)]
@@ -125,14 +135,17 @@ class SampleBasedMpc(Mpc[cs.SX]):
 days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 env = MonitorEpisodes(
-    TimeLimit(LettuceGreenHouse(days_to_grow=days), max_episode_steps=int(ep_len))
+    TimeLimit(
+        LettuceGreenHouse(days_to_grow=days, model_type="nonlinear"),
+        max_episode_steps=int(ep_len),
+    )
 )
 num_episodes = 1
 
 TD = []
 
 Ns = 5
-sample_mpc = SampleBasedMpc(Ns=Ns)
+sample_mpc = SampleBasedMpc(Ns=Ns, prediction_model="rk4")
 agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
     level=logging.DEBUG,

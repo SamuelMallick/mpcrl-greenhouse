@@ -1,4 +1,5 @@
 # model of lettuce greenhouse from van Henten thesis (1994)
+from typing import Literal
 import casadi as cs
 import numpy as np
 
@@ -157,6 +158,10 @@ def df(x, u, d, p):
     return cs.vertcat(dx1, dx2, dx3, dx4)
 
 
+def euler_step(x, u, d, p):
+    return x + ts * df(x, u, d, p)
+
+
 def rk4_step(x, u, d, p):
     k1 = df(x, u, d, p)
     k2 = df(x + (ts / 2) * k1, u, d, p)
@@ -204,20 +209,37 @@ for i in range(20):  # generate 20 randomly purturbed param options
     p_hat_list.append(generate_perturbed_p())
 
 
-def multi_sample_rk4_step(x, u, d, Ns):
-    """Computes the dynamics update for Ns copies of the state x, with a sampled for each"""
+def multi_sample_step(x, u, d, Ns, step_type: Literal["euler", "rk4"]):
     if len(p_hat_list) == 0:
         raise RuntimeError(
             "P samples must be generated before using multi_sample_output."
         )
+
+    if step_type == "euler":
+        step = euler_step
+    elif step_type == "rk4":
+        step = rk4_step
+    else:
+        raise RuntimeError(f"{step_type} is not a valid step_type.")
+
     x_plus = cs.SX.zeros(x.shape)
     for i in range(Ns):
         x_i = x[nx * i : nx * (i + 1), :]  # pull out state for one sample
-        x_i_plus = rk4_step(
+        x_i_plus = step(
             x_i, u, d, p_hat_list[i]
         )  # step it with the corresponding p values
         x_plus[nx * i : nx * (i + 1), :] = x_i_plus
     return x_plus
+
+
+def multi_sample_euler_step(x, u, d, Ns):
+    """Computes a euler dynamics update for Ns copies of the state x, with a different param sample for each"""
+    return multi_sample_step(x, u, d, Ns, step_type="euler")
+
+
+def multi_sample_rk4_step(x, u, d, Ns):
+    """Computes an rk4 dynamics update for Ns copies of the state x, with a different param sample for each"""
+    return multi_sample_step(x, u, d, Ns, step_type="rk4")
 
 
 def multi_sample_output(x, Ns):
