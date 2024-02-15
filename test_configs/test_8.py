@@ -38,7 +38,7 @@ class Test:
     # learning params
     learn_all_p = True  # if false we only learn the sensitive subset of p
     update_strategy = UpdateStrategy(frequency=1, hook="on_timestep_end")
-    learning_rate = 1e-15
+    learning_rate = 1e-20
     optimizer = optim.GradientDescent(learning_rate=learning_rate)
     exploration = None
     experience = None
