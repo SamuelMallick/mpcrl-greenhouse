@@ -10,7 +10,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 
 class Test:
     # simulation and training params
-    test_ID = "8"
+    test_ID = "10"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
