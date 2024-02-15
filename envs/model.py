@@ -1,5 +1,6 @@
 # model of lettuce greenhouse from van Henten thesis (1994)
 from typing import Literal
+
 import casadi as cs
 import numpy as np
 
