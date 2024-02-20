@@ -101,12 +101,18 @@ def generate_perturbed_p():
     # p_hat[p_hat < 0] = 0    # replace negative vals with zero
     # return p_hat[:, 0]
 
+    # adding a perturbation of max 10% of the nominal value
     p_hat = p_true.copy()
     for i in range(len(p_hat)):
-        max_pert = p_hat[i] * 0.1
+        max_pert = p_hat[i] * 0.5
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
     return p_hat
 
+
+# generate a range of samples of perturbed parameters
+p_hat_list = []
+for i in range(20):  # generate 100 randomly purturbed param options
+    p_hat_list.append(generate_perturbed_p())
 
 # continuos time model
 
@@ -181,35 +187,64 @@ def output(x, p):
     ) * x[3]
 
     # add noise to measurement
-    noise = np.random.normal(mean, sd, (nx, 1))
-    return cs.vertcat(y1, y2, y3, y4) + noise
+    # noise = np.random.normal(mean, sd, (nx, 1))
+    return cs.vertcat(y1, y2, y3, y4)
 
 
-def df_real(x, u, d):
+# accurate dynamics
+def df_true(x, u, d):
     """Get continuous differential equation for state with accurate parameters"""
     return df(x, u, d, p_true)
 
 
-def euler_real(x, u, d):
+def euler_true(x, u, d):
     """Get euler equation for state update with accurate parameters"""
-    return x + ts * df_real(x, u, d)
+    return euler_step(x, u, d, p_true)
 
 
-def rk4_step_real(x, u, d):
+def rk4_true(x, u, d):
     """Get discrete RK4 difference equation for state with accurate parameters"""
     return rk4_step(x, u, d, p_true)
 
 
-def output_real(x):
+def output_true(x):
     return output(x, p_true)
 
 
-# robust sample based dynamics and output
-p_hat_list = []
-for i in range(20):  # generate 20 randomly purturbed param options
-    p_hat_list.append(generate_perturbed_p())
+# innacurate dynamics
+def df_perturbed(x, u, d, perturb_list: list[int]):
+    """Get continuous differential equation with a subset of parameters perturbed."""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return df(x, u, d, p)
 
 
+def euler_perturbed(x, u, d, perturb_list: list[int]):
+    """Get euler equation for state update with a subset of parameters perturbed"""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return euler_step(x, u, d, p)
+
+
+def rk4_perturbed(x, u, d, perturb_list: list[int]):
+    """Get discrete RK4 difference equation with a subset of parameters perturbed"""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return rk4_step(x, u, d, p)
+
+
+def output_perturbed(x, perturb_list: list[int]):
+    """Get output equation with a subset of parameters perturbed"""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return output(x, p)
+
+
+# robust sample based dynamics and output - assumed all parameters are wrong
 def multi_sample_step(x, u, d, Ns, step_type: Literal["euler", "rk4"]):
     if len(p_hat_list) == 0:
         raise RuntimeError(
@@ -257,48 +292,53 @@ def multi_sample_output(x, Ns):
 
 
 # learning based dynamics
-def rk4_learnable(x, u, d, p_learnable, p_indexes):
+def learnable_func(
+    x,
+    u,
+    d,
+    perturb_list: list[int],
+    p_learn_tuple: list[tuple[int, cs.SX]],
+    func: Literal["euler", "rk4"],
+):
     if len(p_hat_list) == 0:
         raise RuntimeError("P samples must be generated before use.")
-    param_counter = 0
-    p_learnable_full = p_hat_list[
-        0
-    ].copy()  # use the first perturbed entry as the initial guess for the parameters
-    for i in range(
-        len(p_indexes)
-    ):  # replace the ones that can be learned with symbolic params
-        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
-        param_counter += 1
-
-    return rk4_step(x, u, d, p_learnable_full)
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    for idx, param in p_learn_tuple:
+        p[idx] = param
+    if func == "euler":
+        return euler_step(x, u, d, p)
+    elif func == "rk4":
+        return rk4_step(x, u, d, p)
 
 
-def euler_learnable(x, u, d, p_learnable, p_indexes):
+def euler_learnable(x, u, d, perturb_list, p_learn_tuple: list[tuple[int, cs.SX]]):
+    """Euler dynamics update with some parameters perturbed, and some learnable."""
+    return learnable_func(x, u, d, perturb_list, p_learn_tuple, "euler")
+
+
+def rk4_learnable(x, u, d, perturb_list, p_learn_tuple: list[tuple[int, cs.SX]]):
+    """Rk4 dynamics update with some parameters perturbed, and some learnable."""
+    return learnable_func(x, u, d, perturb_list, p_learn_tuple, "rk4")
+
+
+def output_learnable(x, perturb_list, p_learn_tuple: list[tuple[int, cs.SX]]):
+    """Output function with some parameters perturbed, and some learnable."""
     if len(p_hat_list) == 0:
         raise RuntimeError("P samples must be generated before use.")
-    param_counter = 0
-    p_learnable_full = p_hat_list[
-        0
-    ].copy()  # use the first perturbed entry as the initial guess for the parameters
-    for i in range(
-        len(p_indexes)
-    ):  # replace the ones that can be learned with symbolic params
-        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
-        param_counter += 1
-
-    return x + ts * df(x, u, d, p_learnable_full)
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    for idx, param in p_learn_tuple:
+        p[idx] = param
+    return output(x, p)
 
 
-def output_learnable(x, p_learnable, p_indexes):
-    if len(p_hat_list) == 0:
-        raise RuntimeError("P samples must be generated before use.")
-    param_counter = 0
-    p_learnable_full = p_hat_list[0].copy()
-    for i in range(len(p_indexes)):
-        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
-        param_counter += 1
-
-    return output(x, p_learnable_full)
+def get_perturbed_p(perturb_list: list[int]):
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
 
 
 def get_initial_perturbed_p():
