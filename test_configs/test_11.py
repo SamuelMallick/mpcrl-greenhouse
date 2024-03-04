@@ -4,6 +4,7 @@ import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.exploration import EpsilonGreedyExploration
 from mpcrl.core.schedulers import ExponentialScheduler
+
 # Second-order
 
 
@@ -40,10 +41,10 @@ class Test:
     learning_rate = 1e-2
     optimizer = optim.NetwonMethod(learning_rate=learning_rate)
     exploration = EpsilonGreedyExploration(
-                    epsilon=ExponentialScheduler(0.5, factor=0.9),
-                    hook="on_episode_end",
-                    strength=0.2*np.array([[1.2, 7.5, 150]]).T,
-                )
+        epsilon=ExponentialScheduler(0.5, factor=0.9),
+        hook="on_episode_end",
+        strength=0.2 * np.array([[1.2, 7.5, 150]]).T,
+    )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
         sample_size=2 * ep_len,

@@ -20,9 +20,10 @@ class Test:
     horizon = 24
     discount_factor = 0.99
     rl_cost = {"c_u": [10, 1, 1], "c_y": 1e3, "c_dy": 100, "w": 1e3 * np.ones((1, 4))}
+    p_perturb = [0]  # index of parameters that are perturbed
 
     # learning params
-    learn_all_p = True  # if false we only learn the sensitive subset of p
+    p_learn = [0, 15]  # index of parameters to learn
     # fixed pars and learable pars
     learnable_pars_init = {
         "V0": np.zeros((1,)),
@@ -30,6 +31,13 @@ class Test:
         "c_y": 1e3 * np.ones((1,)),
         "c_dy": 100 * np.ones((1,)),
         "w": 1e3 * np.ones((1, 4)),
+    }
+    # bounds on learnable pars
+    learn_bounds = {
+        "c_u": [0, np.inf],
+        "c_y": [0, np.inf],
+        "c_dy": [0, np.inf],
+        "w": [0, np.inf],
     }
     fixed_pars = {}
 

@@ -68,14 +68,14 @@ class NominalMpc(Mpc[cs.SX]):
                 model = lambda x, u, d: euler_true(x, u, d)
             else:
                 if len(perturb_list) == 0:
-                    perturb_list = get_initial_perturbed_p()
+                    perturb_list = [i for i in range(len(get_initial_perturbed_p()))]
                 model = lambda x, u, d: euler_perturbed(x, u, d, perturb_list)
         elif prediction_model == "rk4":
             if correct_model:
                 model = lambda x, u, d: rk4_true(x, u, d)
             else:
                 if len(perturb_list) == 0:
-                    perturb_list = get_initial_perturbed_p()
+                    perturb_list = [i for i in range(len(get_initial_perturbed_p()))]
                 model = lambda x, u, d: rk4_perturbed(x, u, d, perturb_list)
         else:
             raise RuntimeError(
@@ -88,7 +88,7 @@ class NominalMpc(Mpc[cs.SX]):
             output = lambda x: output_true(x)
         else:
             if len(perturb_list) == 0:
-                perturb_list = get_initial_perturbed_p()
+                perturb_list = [i for i in range(len(get_initial_perturbed_p()))]
             output = lambda x: output_perturbed(x, perturb_list)
 
         # other constraints
@@ -147,11 +147,11 @@ class NominalMpc(Mpc[cs.SX]):
         self.init_solver(opts, solver="ipopt")
 
 
-days = 40
+days = 1
 ep_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
-        LettuceGreenHouse(days_to_grow=days, model_type="nonlinear"),
+        LettuceGreenHouse(days_to_grow=days, model_type="rk4"),
         max_episode_steps=int(ep_len),
     )
 )
@@ -159,7 +159,7 @@ num_episodes = 1
 
 TD = []
 
-mpc = NominalMpc(prediction_model="rk4", correct_model=False, perturb_list=[0])
+mpc = NominalMpc(prediction_model="rk4", correct_model=True, perturb_list=[])
 # mpc = NominalMpc(prediction_model="rk4")
 agent = Log(
     GreenhouseAgent(mpc, {}),

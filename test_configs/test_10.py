@@ -43,9 +43,9 @@ class Test:
     learning_rate = 1e-20
     optimizer = optim.GradientDescent(learning_rate=learning_rate)
     exploration = EpsilonGreedyExploration(
-                    epsilon=ExponentialScheduler(0.5, factor=0.9),
-                    hook="on_episode_end",
-                    strength=0.2*np.array([[1.2, 7.5, 150]]).T,
-                )
+        epsilon=ExponentialScheduler(0.5, factor=0.9),
+        hook="on_episode_end",
+        strength=0.2 * np.array([[1.2, 7.5, 150]]).T,
+    )
     experience = None
     hessian_type = "none"
