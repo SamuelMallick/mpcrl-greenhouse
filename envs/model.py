@@ -61,7 +61,8 @@ def get_y_max(d):
         return np.array([[1e6], [1.6], [20], [70]])
 
 
-p_true = [
+# the model parameters are multiplied by these scale factors. This allows us to normalize the parameters to all be 1
+p_scale = [
     0.544,
     2.65e-7,
     53,
@@ -92,6 +93,20 @@ p_true = [
     238.3,
 ]
 
+p_true = [1] * len(p_scale)
+
+# lower and upper bounds for parameters to be learned
+p_bounds: dict = {}
+for i in range(len(p_true)):
+    p_bounds[f"p_{i}"] = [
+        0.5,
+        1.5,
+    ]  # all parameters are normalized, such that true value is when p_i = 1. These bounds hence represent +- 50%
+
+
+def get_p_learn_bounds():
+    return p_bounds
+
 
 def generate_perturbed_p():
     # cv = 0.05*np.eye(len(p_true))
@@ -101,6 +116,7 @@ def generate_perturbed_p():
     # p_hat[p_hat < 0] = 0    # replace negative vals with zero
     # return p_hat[:, 0]
 
+    # adding a perturbation of max 10% of the nominal value
     p_hat = p_true.copy()
     for i in range(len(p_hat)):
         max_pert = p_hat[i] * 0.1
@@ -108,36 +124,57 @@ def generate_perturbed_p():
     return p_hat
 
 
+# generate a range of samples of perturbed parameters
+p_hat_list = []
+for i in range(20):  # generate 100 randomly purturbed param options
+    p_hat_list.append(generate_perturbed_p())
+
 # continuos time model
 
 
 # sub-functions within dynamics
 def psi(x, d, p):
-    return p[3] * d[0] + (-p[4] * x[2] ** 2 + p[5] * x[2] - p[6]) * (x[1] - p[7])
+    return (p[3] * p_scale[3]) * d[0] + (
+        -(p[4] * p_scale[4]) * x[2] ** 2
+        + (p[5] * p_scale[5]) * x[2]
+        - (p[6] * p_scale[6])
+    ) * (x[1] - (p[7] * p_scale[7]))
 
 
 def phi_phot_c(x, d, p):
     return (
-        (1 - cs.exp(-p[2] * x[0]))
-        * (p[3] * d[0] * (-p[4] * x[2] ** 2 + p[5] * x[2] - p[6]) * (x[1] - p[7]))
+        (1 - cs.exp(-(p[2] * p_scale[2]) * x[0]))
+        * (
+            (p[3] * p_scale[3])
+            * d[0]
+            * (
+                -(p[4] * p_scale[4]) * x[2] ** 2
+                + (p[5] * p_scale[5]) * x[2]
+                - (p[6] * p_scale[6])
+            )
+            * (x[1] - (p[7] * p_scale[7]))
+        )
     ) / (psi(x, d, p))
 
 
 def phi_vent_c(x, u, d, p):
-    return (u[1] * 1e-3 + p[10]) * (x[1] - d[1])
+    return (u[1] * 1e-3 + (p[10] * p_scale[10])) * (x[1] - d[1])
 
 
 def phi_vent_h(x, u, d, p):
-    return (u[1] * 1e-3 + p[10]) * (x[3] - d[3])
+    return (u[1] * 1e-3 + (p[10] * p_scale[10])) * (x[3] - d[3])
 
 
 def phi_trasnp_h(x, p):
     return (
-        p[20]
-        * (1 - cs.exp(-p[2] * x[0]))
+        (p[20] * p_scale[20])
+        * (1 - cs.exp(-(p[2] * p_scale[2]) * x[0]))
         * (
-            ((p[21]) / (p[22] * (x[2] + p[23])))
-            * (cs.exp((p[24] * x[2]) / (x[2] + p[25])))
+            (
+                (p[21] * p_scale[21])
+                / ((p[22] * p_scale[22]) * (x[2] + (p[23] * p_scale[23])))
+            )
+            * (cs.exp(((p[24] * p_scale[24]) * x[2]) / (x[2] + (p[25] * p_scale[25]))))
             - x[3]
         )
     )
@@ -145,17 +182,21 @@ def phi_trasnp_h(x, p):
 
 def df(x, u, d, p):
     """Continuous derivative of state d_dot = df(x, u, d)/dt"""
-    dx1 = p[0] * phi_phot_c(x, d, p) - p[1] * x[0] * 2 ** (x[2] / 10 - 5 / 2)
-    dx2 = (1 / p[8]) * (
+    dx1 = (p[0] * p_scale[0]) * phi_phot_c(x, d, p) - (p[1] * p_scale[1]) * x[
+        0
+    ] * 2 ** (x[2] / 10 - 5 / 2)
+    dx2 = (p[8] / (p_scale[8])) * (
         -phi_phot_c(x, d, p)
-        + p[9] * x[0] * 2 ** (x[2] / 10 - 5 / 2)
+        + (p[9] * p_scale[9]) * x[0] * 2 ** (x[2] / 10 - 5 / 2)
         + u[0] * 1e-6
         - phi_vent_c(x, u, d, p)
     )
-    dx3 = (1 / p[15]) * (
-        u[2] - (p[16] * u[1] * 1e-3 + p[17]) * (x[2] - d[2]) + p[18] * d[0]
+    dx3 = (p[15] / (p_scale[15])) * (
+        u[2]
+        - ((p[16] * p_scale[16]) * u[1] * 1e-3 + (p[17] * p_scale[17])) * (x[2] - d[2])
+        + (p[18] * p_scale[18]) * d[0]
     )
-    dx4 = (1 / p[19]) * (phi_trasnp_h(x, p) - phi_vent_h(x, u, d, p))
+    dx4 = (p[19] / (p_scale[19])) * (phi_trasnp_h(x, p) - phi_vent_h(x, u, d, p))
     return cs.vertcat(dx1, dx2, dx3, dx4)
 
 
@@ -174,42 +215,75 @@ def rk4_step(x, u, d, p):
 def output(x, p):
     """Output function of state y = output(x)"""
     y1 = 1e3 * x[0]
-    y2 = ((1e3 * p[11] * (x[2] + p[12])) / (p[13] * p[14])) * x[1]
+    y2 = (
+        (1e3 * (p[13] * p[14]) * (p[11] * p_scale[11]) * (x[2] + (p[12] * p_scale[12])))
+        / ((p_scale[13]) * (p_scale[14]))
+    ) * x[1]
     y3 = x[2]
     y4 = (
-        (1e2 * p[11] * (x[2] + p[12])) / (11 * cs.exp((p[26] * x[2]) / (x[2] + p[27])))
+        (1e2 * (p[11] * p_scale[11]) * (x[2] + (p[12] * p_scale[12])))
+        / (11 * cs.exp(((p[26] * p_scale[26]) * x[2]) / (x[2] + (p[27] * p_scale[27]))))
     ) * x[3]
 
     # add noise to measurement
-    noise = np.random.normal(mean, sd, (nx, 1))
-    return cs.vertcat(y1, y2, y3, y4) + noise
+    # noise = np.random.normal(mean, sd, (nx, 1))
+    return cs.vertcat(y1, y2, y3, y4)
 
 
-def df_real(x, u, d):
+# accurate dynamics
+def df_true(x, u, d):
     """Get continuous differential equation for state with accurate parameters"""
     return df(x, u, d, p_true)
 
 
-def euler_real(x, u, d):
+def euler_true(x, u, d):
     """Get euler equation for state update with accurate parameters"""
-    return x + ts * df_real(x, u, d)
+    return euler_step(x, u, d, p_true)
 
 
-def rk4_step_real(x, u, d):
+def rk4_true(x, u, d):
     """Get discrete RK4 difference equation for state with accurate parameters"""
     return rk4_step(x, u, d, p_true)
 
 
-def output_real(x):
+def output_true(x):
     return output(x, p_true)
 
 
-# robust sample based dynamics and output
-p_hat_list = []
-for i in range(20):  # generate 20 randomly purturbed param options
-    p_hat_list.append(generate_perturbed_p())
+# innacurate dynamics
+def df_perturbed(x, u, d, perturb_list: list[int]):
+    """Get continuous differential equation with a subset of parameters perturbed."""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return df(x, u, d, p)
 
 
+def euler_perturbed(x, u, d, perturb_list: list[int]):
+    """Get euler equation for state update with a subset of parameters perturbed"""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return euler_step(x, u, d, p)
+
+
+def rk4_perturbed(x, u, d, perturb_list: list[int]):
+    """Get discrete RK4 difference equation with a subset of parameters perturbed"""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return rk4_step(x, u, d, p)
+
+
+def output_perturbed(x, perturb_list: list[int]):
+    """Get output equation with a subset of parameters perturbed"""
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    return output(x, p)
+
+
+# robust sample based dynamics and output - assumed all parameters are wrong
 def multi_sample_step(x, u, d, Ns, step_type: Literal["euler", "rk4"]):
     if len(p_hat_list) == 0:
         raise RuntimeError(
@@ -257,48 +331,53 @@ def multi_sample_output(x, Ns):
 
 
 # learning based dynamics
-def rk4_learnable(x, u, d, p_learnable, p_indexes):
+def learnable_func(
+    x,
+    u,
+    d,
+    perturb_list: list[int],
+    p_learn_tuple: list[tuple[int, cs.SX]],
+    func: Literal["euler", "rk4"],
+):
     if len(p_hat_list) == 0:
         raise RuntimeError("P samples must be generated before use.")
-    param_counter = 0
-    p_learnable_full = p_hat_list[
-        0
-    ].copy()  # use the first perturbed entry as the initial guess for the parameters
-    for i in range(
-        len(p_indexes)
-    ):  # replace the ones that can be learned with symbolic params
-        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
-        param_counter += 1
-
-    return rk4_step(x, u, d, p_learnable_full)
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    for idx, param in p_learn_tuple:
+        p[idx] = param
+    if func == "euler":
+        return euler_step(x, u, d, p)
+    elif func == "rk4":
+        return rk4_step(x, u, d, p)
 
 
-def euler_learnable(x, u, d, p_learnable, p_indexes):
+def euler_learnable(x, u, d, perturb_list, p_learn_tuple: list[tuple[int, cs.SX]]):
+    """Euler dynamics update with some parameters perturbed, and some learnable."""
+    return learnable_func(x, u, d, perturb_list, p_learn_tuple, "euler")
+
+
+def rk4_learnable(x, u, d, perturb_list, p_learn_tuple: list[tuple[int, cs.SX]]):
+    """Rk4 dynamics update with some parameters perturbed, and some learnable."""
+    return learnable_func(x, u, d, perturb_list, p_learn_tuple, "rk4")
+
+
+def output_learnable(x, perturb_list, p_learn_tuple: list[tuple[int, cs.SX]]):
+    """Output function with some parameters perturbed, and some learnable."""
     if len(p_hat_list) == 0:
         raise RuntimeError("P samples must be generated before use.")
-    param_counter = 0
-    p_learnable_full = p_hat_list[
-        0
-    ].copy()  # use the first perturbed entry as the initial guess for the parameters
-    for i in range(
-        len(p_indexes)
-    ):  # replace the ones that can be learned with symbolic params
-        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
-        param_counter += 1
-
-    return x + ts * df(x, u, d, p_learnable_full)
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
+    for idx, param in p_learn_tuple:
+        p[idx] = param
+    return output(x, p)
 
 
-def output_learnable(x, p_learnable, p_indexes):
-    if len(p_hat_list) == 0:
-        raise RuntimeError("P samples must be generated before use.")
-    param_counter = 0
-    p_learnable_full = p_hat_list[0].copy()
-    for i in range(len(p_indexes)):
-        p_learnable_full[p_indexes[i]] = p_learnable[param_counter]
-        param_counter += 1
-
-    return output(x, p_learnable_full)
+def get_perturbed_p(perturb_list: list[int]):
+    p = p_true.copy()
+    for idx in perturb_list:
+        p[idx] = p_hat_list[0][idx]
 
 
 def get_initial_perturbed_p():

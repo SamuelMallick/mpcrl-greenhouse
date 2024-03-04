@@ -14,14 +14,16 @@ days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 nx = 4
 nu = 3
-allp = False
-rk4 = False
+allp = True
+rk4 = True
 lr = 0.0001
 
 with open(
     # f"results/green_V1_lr_{lr}_ne_{num_episodes}_allp_{allp}_rk4_{rk4}.pkl",
-    "results/green_nom.pkl",
+    # "results/nominal/models/6_green_nom_pred_rk4_real_nonlin.pkl",
     # "results/green_sample_5.pkl",
+    f"results/nominal/models/green_nom_pred_rk4_real_rk4.pkl",
+    # f"results_large/5_green_V1_lr_{lr}_ne_{num_episodes}_allp_{allp}_rk4_{rk4}.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)
@@ -33,7 +35,9 @@ with open(
     param_list = pickle.load(file)
 
 R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
-TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
+TD_eps = [
+    np.nansum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)
+]
 
 _, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
 axs[0].plot(TD, "o", markersize=1)
@@ -88,7 +92,7 @@ y_max = np.zeros((nx, ep_len))
 for k in range(ep_len):
     y_min[:, [k]] = get_y_min(d[:, [-ep_len + k]])
     y_max[:, [k]] = get_y_max(d[:, [-ep_len + k]])
-_, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
+# _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
 axs[0].set_title("Last ep")
 for i in range(4):
     axs[i].plot(y[-ep_len - 1 : -1, i])

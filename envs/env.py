@@ -8,14 +8,14 @@ from gymnasium import Env
 from mpcrl import Agent, LstdQLearningAgent
 
 from envs.model import (
-    df_real,
-    euler_real,
+    df_true,
+    euler_true,
     get_disturbance_profile,
     get_model_details,
     get_y_max,
     get_y_min,
-    output_real,
-    rk4_step_real,
+    output_true,
+    rk4_true,
 )
 
 
@@ -40,7 +40,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self,
         days_to_grow: int,
         model_type: Literal["nonlinear", "rk4", "euler"],
-        rl_cost: dict,
+        rl_cost: dict = {},
     ) -> None:
         super().__init__()
 
@@ -60,7 +60,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         u = cs.SX.sym("u", (self.nu, 1))
         d = cs.SX.sym("d", (self.nd, 1))
         p = cs.vertcat(u, d)
-        x_new = df_real(x, u, d)
+        x_new = df_true(x, u, d)
         ode = {"x": x, "p": p, "ode": x_new}
         self.integrator = cs.integrator(
             "env_integrator",
@@ -100,7 +100,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self, state: npt.NDArray[np.floating], action: npt.NDArray[np.floating]
     ) -> float:
         reward = 0.0
-        y = output_real(state)  # get output from current state
+        y = output_true(state)  # get output from current state
         y_max = get_y_max(self.disturbance_profile[:, [self.step_counter]])
         y_min = get_y_min(self.disturbance_profile[:, [self.step_counter]])
 
@@ -130,11 +130,11 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         r = float(self.get_stage_cost(self.x, action))
 
         if self.model_type == "euler":
-            x_new = euler_real(
+            x_new = euler_true(
                 self.x, action, self.disturbance_profile[:, [self.step_counter]]
             )
         elif self.model_type == "rk4":
-            x_new = rk4_step_real(
+            x_new = rk4_true(
                 self.x, action, self.disturbance_profile[:, [self.step_counter]]
             )
         elif self.model_type == "nonlinear":

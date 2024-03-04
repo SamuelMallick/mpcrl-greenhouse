@@ -20,26 +20,30 @@ from envs.model import (
     get_control_bounds,
     get_initial_perturbed_p,
     get_model_details,
+    get_p_learn_bounds,
     output_learnable,
-    output_real,
+    output_true,
     rk4_learnable,
 )
 from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
-STORE_DATA = True
-PLOT = False
-
 # if a config file passed on command line, otherwise use dedault config file
 if len(sys.argv) > 1:
     config_file = sys.argv[1]
     mod = importlib.import_module(f"test_configs.{config_file}")
     test = mod.Test()
+
+    STORE_DATA = True
+    PLOT = False
 else:
-    from test_configs.test_9 import Test
+    from test_configs.perfect_model import Test
 
     test = Test()
+
+    STORE_DATA = True
+    PLOT = True
 
 # create test objecttest = Test()
 
@@ -53,24 +57,14 @@ class LearningMpc(Mpc[cs.SX]):
     horizon = test.horizon
     discount_factor = test.discount_factor
 
-    # list of indexes in p to which learnable parameters correspond
-    if test.learn_all_p:
-        num_learnable_p = 28
-        p_indexes = [i for i in range(num_learnable_p)]
-    else:
-        num_learnable_p = 4
-        p_indexes = [
-            0,
-            2,
-            3,
-            5,
-        ]
-
     # add dynamics params to learnable pars init
     learnable_pars_init = test.learnable_pars_init
-    p_init = get_initial_perturbed_p()
-    for i in range(num_learnable_p):
-        learnable_pars_init[f"p_{i}"] = np.array([p_init[p_indexes[i]]])
+    p_perturb_full = get_initial_perturbed_p()
+    for idx in test.p_learn:
+        # use perturbed value as initial guess or true value
+        learnable_pars_init[f"p_{idx}"] = (
+            np.asarray(p_perturb_full[idx]) if idx in test.p_perturb else np.asarray(1)
+        )
 
     # add disturbance prediction and output constraints to fixed pars
     fixed_pars = test.fixed_pars
@@ -85,7 +79,7 @@ class LearningMpc(Mpc[cs.SX]):
         super().__init__(nlp, N)
 
         # variables (state, action, dist, slack)
-        x, _ = self.state("x", nx)
+        x, _ = self.state("x", nx, lb=0, ub=1e3)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
         s, _, _ = self.variable("s", (nx, N + 1), lb=0)  # slack vars
@@ -96,8 +90,9 @@ class LearningMpc(Mpc[cs.SX]):
         c_dy = self.parameter("c_dy", (1,))
         c_y = self.parameter("c_y", (1,))
         w = self.parameter("w", (1, 4))
-        p_learnable = [
-            self.parameter(f"p_{i}", (1,)) for i in range(self.num_learnable_p)
+        # build tuple of learnable params and their indexes
+        p_learn_tuples = [
+            (idx, self.parameter(f"p_{idx}", (1,))) for idx in test.p_learn
         ]
 
         # dynamics
@@ -110,15 +105,17 @@ class LearningMpc(Mpc[cs.SX]):
                 f"{test.prediction_model} is not a valid prediction model."
             )
         self.set_dynamics(
-            lambda x, u, d: dynam(x, u, d, p_learnable, self.p_indexes),
+            lambda x, u, d: dynam(x, u, d, test.p_perturb, p_learn_tuples),
             n_in=3,
             n_out=1,
         )
 
+        output = lambda x: output_learnable(x, test.p_perturb, p_learn_tuples)
+
         # other constraints
         y_min_list = [self.parameter(f"y_min_{k}", (nx, 1)) for k in range(N + 1)]
         y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
-        y_k = [output_learnable(x[:, [0]], p_learnable, self.p_indexes)]
+        y_k = [output(x[:, [0]])]
 
         self.constraint(f"y_min_0", y_k[0], ">=", y_min_list[0] - s[:, [0]])
         self.constraint(f"y_max_0", y_k[0], "<=", y_max_list[0] + s[:, [0]])
@@ -128,7 +125,7 @@ class LearningMpc(Mpc[cs.SX]):
             self.constraint(f"du_leq_{k}", u[:, [k]] - u[:, [k - 1]], ">=", -du_lim)
 
         for k in range(1, N + 1):
-            y_k.append(output_learnable(x[:, [k]], p_learnable, self.p_indexes))
+            y_k.append(output(x[:, [k]]))
             # output constraints
             self.constraint(f"y_min_{k}", y_k[k], ">=", y_min_list[k] - s[:, [k]])
             self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
@@ -186,9 +183,18 @@ env = MonitorEpisodes(
 )
 
 mpc = LearningMpc()
+param_bounds = get_p_learn_bounds()
+param_bounds.update(test.learn_bounds)
 learnable_pars = LearnableParametersDict[cs.SX](
     (
-        LearnableParameter(name, val.shape, val, sym=mpc.parameters[name])
+        LearnableParameter(
+            name,
+            val.shape,
+            val,
+            sym=mpc.parameters[name],
+            lb=param_bounds[name][0] if name in param_bounds.keys() else -np.inf,
+            ub=param_bounds[name][1] if name in param_bounds.keys() else np.inf,
+        )
         for name, val in mpc.learnable_pars_init.items()
     )
 )
@@ -209,7 +215,9 @@ agent = Log(  # type: ignore[var-annotated]
         )
     ),
     level=logging.DEBUG,
-    log_frequencies={"on_timestep_end": 1},
+    log_frequencies={"on_timestep_end": 1000},
+    to_file=True,
+    log_name=f"log_{test.test_ID}",
 )
 # evaluate train
 agent.train(env=env, episodes=test.num_episodes, seed=1, raises=False)
@@ -232,7 +240,7 @@ TD_eps = [
     sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(test.num_episodes)
 ]
 # generate output
-y = np.asarray([output_real(X[k, :]) for k in range(X.shape[0])]).squeeze()
+y = np.asarray([output_true(X[k, :]) for k in range(X.shape[0])]).squeeze()
 d = env.disturbance_profile_data
 
 if PLOT:
