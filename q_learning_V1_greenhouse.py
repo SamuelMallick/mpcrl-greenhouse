@@ -20,27 +20,30 @@ from envs.model import (
     get_control_bounds,
     get_initial_perturbed_p,
     get_model_details,
+    get_p_learn_bounds,
     output_learnable,
     output_true,
     rk4_learnable,
-    get_p_learn_bounds,
 )
 from plot_green import plot_greenhouse
 
 np.random.seed(1)
-
-STORE_DATA = True
-PLOT = False
 
 # if a config file passed on command line, otherwise use dedault config file
 if len(sys.argv) > 1:
     config_file = sys.argv[1]
     mod = importlib.import_module(f"test_configs.{config_file}")
     test = mod.Test()
+
+    STORE_DATA = True
+    PLOT = False
 else:
-    from test_configs.default import Test
+    from test_configs.perfect_model import Test
 
     test = Test()
+
+    STORE_DATA = True
+    PLOT = True
 
 # create test objecttest = Test()
 
@@ -58,7 +61,10 @@ class LearningMpc(Mpc[cs.SX]):
     learnable_pars_init = test.learnable_pars_init
     p_perturb_full = get_initial_perturbed_p()
     for idx in test.p_learn:
-        learnable_pars_init[f"p_{idx}"] = np.asarray(p_perturb_full[idx])
+        # use perturbed value as initial guess or true value
+        learnable_pars_init[f"p_{idx}"] = (
+            np.asarray(p_perturb_full[idx]) if idx in test.p_perturb else np.asarray(1)
+        )
 
     # add disturbance prediction and output constraints to fixed pars
     fixed_pars = test.fixed_pars

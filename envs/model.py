@@ -171,7 +171,7 @@ def phi_trasnp_h(x, p):
         * (1 - cs.exp(-(p[2] * p_scale[2]) * x[0]))
         * (
             (
-                ((p[21] * p_scale[21]))
+                (p[21] * p_scale[21])
                 / ((p[22] * p_scale[22]) * (x[2] + (p[23] * p_scale[23])))
             )
             * (cs.exp(((p[24] * p_scale[24]) * x[2]) / (x[2] + (p[25] * p_scale[25]))))
