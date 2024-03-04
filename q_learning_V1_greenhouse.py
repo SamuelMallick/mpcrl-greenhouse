@@ -23,6 +23,7 @@ from envs.model import (
     output_learnable,
     output_true,
     rk4_learnable,
+    get_p_learn_bounds,
 )
 from plot_green import plot_greenhouse
 
@@ -72,7 +73,7 @@ class LearningMpc(Mpc[cs.SX]):
         super().__init__(nlp, N)
 
         # variables (state, action, dist, slack)
-        x, _ = self.state("x", nx)
+        x, _ = self.state("x", nx, lb=0, ub=1e3)
         u, _ = self.action("u", nu, lb=u_min, ub=u_max)
         self.disturbance("d", nd)
         s, _, _ = self.variable("s", (nx, N + 1), lb=0)  # slack vars
@@ -176,9 +177,18 @@ env = MonitorEpisodes(
 )
 
 mpc = LearningMpc()
+param_bounds = get_p_learn_bounds()
+param_bounds.update(test.learn_bounds)
 learnable_pars = LearnableParametersDict[cs.SX](
     (
-        LearnableParameter(name, val.shape, val, sym=mpc.parameters[name])
+        LearnableParameter(
+            name,
+            val.shape,
+            val,
+            sym=mpc.parameters[name],
+            lb=param_bounds[name][0] if name in param_bounds.keys() else -np.inf,
+            ub=param_bounds[name][1] if name in param_bounds.keys() else np.inf,
+        )
         for name, val in mpc.learnable_pars_init.items()
     )
 )
@@ -199,7 +209,9 @@ agent = Log(  # type: ignore[var-annotated]
         )
     ),
     level=logging.DEBUG,
-    log_frequencies={"on_timestep_end": 1},
+    log_frequencies={"on_timestep_end": 1000},
+    to_file=True,
+    log_name=f"log_{test.test_ID}",
 )
 # evaluate train
 agent.train(env=env, episodes=test.num_episodes, seed=1, raises=False)

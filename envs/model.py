@@ -61,7 +61,8 @@ def get_y_max(d):
         return np.array([[1e6], [1.6], [20], [70]])
 
 
-p_true = [
+# the model parameters are multiplied by these scale factors. This allows us to normalize the parameters to all be 1
+p_scale = [
     0.544,
     2.65e-7,
     53,
@@ -92,6 +93,20 @@ p_true = [
     238.3,
 ]
 
+p_true = [1] * len(p_scale)
+
+# lower and upper bounds for parameters to be learned
+p_bounds: dict = {}
+for i in range(len(p_true)):
+    p_bounds[f"p_{i}"] = [
+        0.5,
+        1.5,
+    ]  # all parameters are normalized, such that true value is when p_i = 1. These bounds hence represent +- 50%
+
+
+def get_p_learn_bounds():
+    return p_bounds
+
 
 def generate_perturbed_p():
     # cv = 0.05*np.eye(len(p_true))
@@ -104,7 +119,7 @@ def generate_perturbed_p():
     # adding a perturbation of max 10% of the nominal value
     p_hat = p_true.copy()
     for i in range(len(p_hat)):
-        max_pert = p_hat[i] * 0.5
+        max_pert = p_hat[i] * 0.1
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
     return p_hat
 
@@ -119,31 +134,47 @@ for i in range(20):  # generate 100 randomly purturbed param options
 
 # sub-functions within dynamics
 def psi(x, d, p):
-    return p[3] * d[0] + (-p[4] * x[2] ** 2 + p[5] * x[2] - p[6]) * (x[1] - p[7])
+    return (p[3] * p_scale[3]) * d[0] + (
+        -(p[4] * p_scale[4]) * x[2] ** 2
+        + (p[5] * p_scale[5]) * x[2]
+        - (p[6] * p_scale[6])
+    ) * (x[1] - (p[7] * p_scale[7]))
 
 
 def phi_phot_c(x, d, p):
     return (
-        (1 - cs.exp(-p[2] * x[0]))
-        * (p[3] * d[0] * (-p[4] * x[2] ** 2 + p[5] * x[2] - p[6]) * (x[1] - p[7]))
+        (1 - cs.exp(-(p[2] * p_scale[2]) * x[0]))
+        * (
+            (p[3] * p_scale[3])
+            * d[0]
+            * (
+                -(p[4] * p_scale[4]) * x[2] ** 2
+                + (p[5] * p_scale[5]) * x[2]
+                - (p[6] * p_scale[6])
+            )
+            * (x[1] - (p[7] * p_scale[7]))
+        )
     ) / (psi(x, d, p))
 
 
 def phi_vent_c(x, u, d, p):
-    return (u[1] * 1e-3 + p[10]) * (x[1] - d[1])
+    return (u[1] * 1e-3 + (p[10] * p_scale[10])) * (x[1] - d[1])
 
 
 def phi_vent_h(x, u, d, p):
-    return (u[1] * 1e-3 + p[10]) * (x[3] - d[3])
+    return (u[1] * 1e-3 + (p[10] * p_scale[10])) * (x[3] - d[3])
 
 
 def phi_trasnp_h(x, p):
     return (
-        p[20]
-        * (1 - cs.exp(-p[2] * x[0]))
+        (p[20] * p_scale[20])
+        * (1 - cs.exp(-(p[2] * p_scale[2]) * x[0]))
         * (
-            ((p[21]) / (p[22] * (x[2] + p[23])))
-            * (cs.exp((p[24] * x[2]) / (x[2] + p[25])))
+            (
+                ((p[21] * p_scale[21]))
+                / ((p[22] * p_scale[22]) * (x[2] + (p[23] * p_scale[23])))
+            )
+            * (cs.exp(((p[24] * p_scale[24]) * x[2]) / (x[2] + (p[25] * p_scale[25]))))
             - x[3]
         )
     )
@@ -151,17 +182,21 @@ def phi_trasnp_h(x, p):
 
 def df(x, u, d, p):
     """Continuous derivative of state d_dot = df(x, u, d)/dt"""
-    dx1 = p[0] * phi_phot_c(x, d, p) - p[1] * x[0] * 2 ** (x[2] / 10 - 5 / 2)
-    dx2 = (1 / p[8]) * (
+    dx1 = (p[0] * p_scale[0]) * phi_phot_c(x, d, p) - (p[1] * p_scale[1]) * x[
+        0
+    ] * 2 ** (x[2] / 10 - 5 / 2)
+    dx2 = (p[8] / (p_scale[8])) * (
         -phi_phot_c(x, d, p)
-        + p[9] * x[0] * 2 ** (x[2] / 10 - 5 / 2)
+        + (p[9] * p_scale[9]) * x[0] * 2 ** (x[2] / 10 - 5 / 2)
         + u[0] * 1e-6
         - phi_vent_c(x, u, d, p)
     )
-    dx3 = (1 / p[15]) * (
-        u[2] - (p[16] * u[1] * 1e-3 + p[17]) * (x[2] - d[2]) + p[18] * d[0]
+    dx3 = (p[15] / (p_scale[15])) * (
+        u[2]
+        - ((p[16] * p_scale[16]) * u[1] * 1e-3 + (p[17] * p_scale[17])) * (x[2] - d[2])
+        + (p[18] * p_scale[18]) * d[0]
     )
-    dx4 = (1 / p[19]) * (phi_trasnp_h(x, p) - phi_vent_h(x, u, d, p))
+    dx4 = (p[19] / (p_scale[19])) * (phi_trasnp_h(x, p) - phi_vent_h(x, u, d, p))
     return cs.vertcat(dx1, dx2, dx3, dx4)
 
 
@@ -180,10 +215,14 @@ def rk4_step(x, u, d, p):
 def output(x, p):
     """Output function of state y = output(x)"""
     y1 = 1e3 * x[0]
-    y2 = ((1e3 * p[11] * (x[2] + p[12])) / (p[13] * p[14])) * x[1]
+    y2 = (
+        (1e3 * (p[13] * p[14]) * (p[11] * p_scale[11]) * (x[2] + (p[12] * p_scale[12])))
+        / ((p_scale[13]) * (p_scale[14]))
+    ) * x[1]
     y3 = x[2]
     y4 = (
-        (1e2 * p[11] * (x[2] + p[12])) / (11 * cs.exp((p[26] * x[2]) / (x[2] + p[27])))
+        (1e2 * (p[11] * p_scale[11]) * (x[2] + (p[12] * p_scale[12])))
+        / (11 * cs.exp(((p[26] * p_scale[26]) * x[2]) / (x[2] + (p[27] * p_scale[27]))))
     ) * x[3]
 
     # add noise to measurement
