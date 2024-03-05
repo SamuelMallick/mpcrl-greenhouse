@@ -7,7 +7,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 
 class Test:
     # simulation and training params
-    test_ID = "perf_model"
+    test_ID = "test_13"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 50
@@ -20,7 +20,7 @@ class Test:
     horizon = 24
     discount_factor = 0.99
     rl_cost = {"c_u": [0, 0, 0], "c_y": 0, "c_dy": 100, "w": 0 * np.ones((1, 4))}
-    p_perturb: list = []  # index of parameters that are perturbed
+    p_perturb: list = [i for i in range(28)]  # index of parameters that are perturbed
 
     # learning params
     p_learn = [i for i in range(28)]  # index of parameters to learn
@@ -35,7 +35,7 @@ class Test:
     }
     fixed_pars = {
         "c_u": np.array([0, 0, 0]),
-        "c_y": 0 * np.ones((1,)),
+        "c_y": 1e4 * np.ones((1,)),
         "w": 0 * np.ones((1, 4)),
     }
 

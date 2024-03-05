@@ -35,8 +35,8 @@ class Test:
     }
     fixed_pars = {
         "c_u": np.array([0, 0, 0]),
-        "c_y": 1e3 * np.ones((1,)),
-        "w": 1e3 * np.ones((1, 4)),
+        "c_y": 0 * np.ones((1,)),
+        "w": 0 * np.ones((1, 4)),
     }
 
     update_strategy = UpdateStrategy(1, hook="on_episode_end")
