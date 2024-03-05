@@ -165,16 +165,18 @@ class GreenhouseAgent(Agent):
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
         return super().on_episode_start(env, episode, state)
 
-    def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
+    def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
-            :, env.step_counter : (env.step_counter + self.V.prediction_horizon + 1)
+            :, timestep
+            + 1 : (timestep
+            + 1 + self.V.prediction_horizon + 1)
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
         for k in range(self.V.prediction_horizon + 1):
             self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_timestep_end(env, episode, timestep)
+        return super().on_env_step(env, episode, timestep)
 
 
 # TODO request bug fix from Fillipo so that the training and evaluation can use the same indexes - at the moment it is okay because we use step counter instead
@@ -189,18 +191,18 @@ class GreenhouseLearningAgent(LstdQLearningAgent):
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
         return super().on_episode_start(env, episode, state)
 
-    def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
+    def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
             :,
-            env.step_counter
-            + 1 : (env.step_counter + 1 + self.V.prediction_horizon + 1),
+            timestep
+            + 1 : (timestep + 1 + self.V.prediction_horizon + 1),
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
         for k in range(self.V.prediction_horizon + 1):
             self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_timestep_end(env, episode, timestep)
+        return super().on_env_step(env, episode, timestep)
 
 
 class GreenhouseSampleAgent(Agent):
@@ -219,7 +221,7 @@ class GreenhouseSampleAgent(Agent):
             )
         return super().on_episode_start(env, episode, state)
 
-    def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
+    def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
             :, env.step_counter : (env.step_counter + self.V.prediction_horizon + 1)
         ]
@@ -233,4 +235,4 @@ class GreenhouseSampleAgent(Agent):
             self.fixed_parameters[f"y_max_{k}"] = cs.vertcat(
                 *[get_y_max(d_pred[:, [k]])] * Ns
             )
-        return super().on_timestep_end(env, episode, timestep)
+        return super().on_env_step(env, episode, timestep)
