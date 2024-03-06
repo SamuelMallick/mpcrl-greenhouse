@@ -38,7 +38,7 @@ if len(sys.argv) > 1:
     STORE_DATA = True
     PLOT = False
 else:
-    from test_configs.perfect_model import Test
+    from test_configs.test_17 import Test
 
     test = Test()
 
@@ -90,6 +90,9 @@ class LearningMpc(Mpc[cs.SX]):
         c_dy = self.parameter("c_dy", (1,))
         c_y = self.parameter("c_y", (1,))
         w = self.parameter("w", (1, 4))
+        olb = self.parameter("olb", (4, 1))
+        oub = self.parameter("oub", (4, 1))
+        y_fin = self.parameter("y_fin", (1,))
         # build tuple of learnable params and their indexes
         p_learn_tuples = [
             (idx, self.parameter(f"p_{idx}", (1,))) for idx in test.p_learn
@@ -117,8 +120,8 @@ class LearningMpc(Mpc[cs.SX]):
         y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
         y_k = [output(x[:, [0]])]
 
-        self.constraint(f"y_min_0", y_k[0], ">=", y_min_list[0] - s[:, [0]])
-        self.constraint(f"y_max_0", y_k[0], "<=", y_max_list[0] + s[:, [0]])
+        self.constraint(f"y_min_0", y_k[0], ">=", (1 + olb) * y_min_list[0] - s[:, [0]])
+        self.constraint(f"y_max_0", y_k[0], "<=", (1 + oub) * y_max_list[0] + s[:, [0]])
         for k in range(1, N):
             # control change constraints
             self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
@@ -127,8 +130,12 @@ class LearningMpc(Mpc[cs.SX]):
         for k in range(1, N + 1):
             y_k.append(output(x[:, [k]]))
             # output constraints
-            self.constraint(f"y_min_{k}", y_k[k], ">=", y_min_list[k] - s[:, [k]])
-            self.constraint(f"y_max_{k}", y_k[k], "<=", y_max_list[k] + s[:, [k]])
+            self.constraint(
+                f"y_min_{k}", y_k[k], ">=", (1 + olb) * y_min_list[k] - s[:, [k]]
+            )
+            self.constraint(
+                f"y_max_{k}", y_k[k], "<=", (1 + oub) * y_max_list[k] + s[:, [k]]
+            )
 
         obj = V0
         # penalize control effort
@@ -144,8 +151,8 @@ class LearningMpc(Mpc[cs.SX]):
         for k in range(1, N + 1):
             obj += -(self.discount_factor**k) * c_dy * (y_k[k][0] - y_k[k - 1][0])
 
-        # reward final weight
-        obj += -(self.discount_factor ** (N + 1)) * c_y * y_k[N][0]
+        # reward final weight a.k.a terminal cost
+        obj += (self.discount_factor ** (N + 1)) * c_dy * c_y * (y_fin - y_k[N][0])
 
         self.minimize(obj)
 

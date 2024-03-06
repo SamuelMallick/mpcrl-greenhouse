@@ -167,9 +167,7 @@ class GreenhouseAgent(Agent):
 
     def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
-            :, timestep
-            + 1 : (timestep
-            + 1 + self.V.prediction_horizon + 1)
+            :, timestep + 1 : (timestep + 1 + self.V.prediction_horizon + 1)
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
@@ -194,8 +192,7 @@ class GreenhouseLearningAgent(LstdQLearningAgent):
     def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
             :,
-            timestep
-            + 1 : (timestep + 1 + self.V.prediction_horizon + 1),
+            timestep + 1 : (timestep + 1 + self.V.prediction_horizon + 1),
         ]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
