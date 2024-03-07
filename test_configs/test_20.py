@@ -2,12 +2,13 @@ from typing import Literal
 
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
+from mpcrl.core.exploration import EpsilonGreedyExploration
 from mpcrl.core.schedulers import ExponentialScheduler
 
 
 class Test:
     # simulation and training params
-    test_ID = "test_18"
+    test_ID = "test_20"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
@@ -21,6 +22,7 @@ class Test:
     discount_factor = 1
     rl_cost = {"c_u": [0, 0, 0], "c_y": 0, "c_dy": 100, "w": 1e3 * np.ones((1, 4))}
     p_perturb: list = [i for i in range(28)]  # index of parameters that are perturbed
+    perturb = 0.2
 
     # learning params
     p_learn = [i for i in range(28)]  # index of parameters to learn
@@ -52,7 +54,11 @@ class Test:
     optimizer = optim.NetwonMethod(
         learning_rate=ExponentialScheduler(learning_rate, factor=1)
     )
-    exploration = None
+    exploration = EpsilonGreedyExploration(
+        epsilon=ExponentialScheduler(0.9, factor=0.9),
+        hook="on_episode_end",
+        strength=0.5 * np.array([[1.2], [7.5], [150]]),
+    )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
         sample_size=2 * ep_len,
