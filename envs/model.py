@@ -108,7 +108,7 @@ def get_p_learn_bounds():
     return p_bounds
 
 
-def generate_perturbed_p():
+def generate_perturbed_p(percentage_perturb: float = 0.1):
     # cv = 0.05*np.eye(len(p_true))
     # chol = np.linalg.cholesky(cv)
     # rand_nums = np.random.randn(len(p_true), 1)
@@ -119,15 +119,19 @@ def generate_perturbed_p():
     # adding a perturbation of max 10% of the nominal value
     p_hat = p_true.copy()
     for i in range(len(p_hat)):
-        max_pert = p_hat[i] * 0.1
+        max_pert = p_hat[i] * percentage_perturb
         p_hat[i] = p_hat[i] + np.random.uniform(-max_pert, max_pert)
     return p_hat
 
 
 # generate a range of samples of perturbed parameters
 p_hat_list = []
-for i in range(20):  # generate 100 randomly purturbed param options
-    p_hat_list.append(generate_perturbed_p())
+
+
+def generate_parameters(percentage_perturb: float = 0.1):
+    for i in range(20):  # generate 100 randomly purturbed param options
+        p_hat_list.append(generate_perturbed_p(percentage_perturb))
+
 
 # continuos time model
 

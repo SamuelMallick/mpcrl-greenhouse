@@ -17,6 +17,7 @@ from mpcrl.wrappers.envs import MonitorEpisodes
 from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
 from envs.model import (
     euler_learnable,
+    generate_parameters,
     get_control_bounds,
     get_initial_perturbed_p,
     get_model_details,
@@ -38,17 +39,20 @@ if len(sys.argv) > 1:
     STORE_DATA = True
     PLOT = False
 else:
-    from test_configs.test_17 import Test
+    from test_configs.test_19 import Test
 
     test = Test()
 
     STORE_DATA = True
     PLOT = True
 
-# create test objecttest = Test()
-
 nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
+
+if hasattr(test, "perturb"):
+    generate_parameters(test.perturb)
+else:
+    generate_parameters()
 
 
 class LearningMpc(Mpc[cs.SX]):
