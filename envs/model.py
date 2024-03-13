@@ -31,16 +31,16 @@ def get_model_details():
 
 
 def get_disturbance_profile(init_day: int, days_to_grow: int):
-    # an extra days worth added to the profile for the prediction horizon
-    if init_day > 310:
-        init_day = init_day % 310
-    # return the disturbance vectors for the number of dyas requested, with one extra for the prediction horizon during the last day
-    return d[
-        :,
-        init_day
-        * time_steps_per_day : (init_day + days_to_grow + 1)
-        * time_steps_per_day,
-    ]
+    # disturbance data has 324 days
+    if init_day > 324:
+        init_day = init_day % 324
+    # return the disturbance vectors for the number of days requested, with one extra for the prediction horizon during the last day
+    idx1 = init_day * time_steps_per_day
+    idx2 = (init_day + days_to_grow + 1) * time_steps_per_day
+    if idx2 > d.shape[1]:
+        return np.hstack((d[:, idx1:], d[:, :idx2%d.shape[1]]))
+    else:
+        return d[:, idx1:idx2]
 
 
 def get_control_bounds():

@@ -81,8 +81,13 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.x = np.array(
             [[0.0035], [0.001], [15], [0.008]]
         )  # initial condition used in the robust approach paper - 2022
+
+        if options is not None and "first_day_index" in options:
+            first_day_index = options["first_day_index"]
+        else:
+            first_day_index = 0
         self.disturbance_profile = get_disturbance_profile(
-            0, days_to_grow=self.days_to_grow
+            first_day_index, days_to_grow=self.days_to_grow
         )
 
         # take only the disturbance data for the growing days
