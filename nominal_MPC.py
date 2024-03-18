@@ -1,6 +1,3 @@
-import datetime
-import logging
-import pickle
 from typing import Literal
 
 import casadi as cs
@@ -9,11 +6,7 @@ import casadi as cs
 import numpy as np
 from csnlp import Nlp
 from csnlp.wrappers import Mpc
-from gymnasium.wrappers import TimeLimit
-from mpcrl.wrappers.agents import Log
-from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import GreenhouseAgent, LettuceGreenHouse
 from envs.model import (
     euler_perturbed,
     euler_true,
@@ -25,7 +18,6 @@ from envs.model import (
     rk4_perturbed,
     rk4_true,
 )
-from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
@@ -35,6 +27,7 @@ u_min, u_max, du_lim = get_control_bounds()
 c_u = np.array([10, 1, 1])  # penalty on each control signal
 c_y = np.array([1e3])  # reward on yield
 w = 1e3 * np.ones((1, nx))  # penalty on constraint violations
+
 
 class NominalMpc(Mpc[cs.SX]):
     """Non-linear MPC for greenhouse control."""

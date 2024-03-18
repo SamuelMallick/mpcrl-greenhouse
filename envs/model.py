@@ -38,7 +38,7 @@ def get_disturbance_profile(init_day: int, days_to_grow: int):
     idx1 = init_day * time_steps_per_day
     idx2 = (init_day + days_to_grow + 1) * time_steps_per_day
     if idx2 > d.shape[1]:
-        return np.hstack((d[:, idx1:], d[:, :idx2%d.shape[1]]))
+        return np.hstack((d[:, idx1:], d[:, : idx2 % d.shape[1]]))
     else:
         return d[:, idx1:idx2]
 

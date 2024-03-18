@@ -1,32 +1,16 @@
-import datetime
 import logging
 import pickle
-from typing import Literal
-
-import casadi as cs
 
 # import networkx as netx
 import numpy as np
-from csnlp import Nlp
-from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseAgent, LettuceGreenHouse
-from envs.model import (
-    euler_perturbed,
-    euler_true,
-    get_control_bounds,
-    get_initial_perturbed_p,
-    get_model_details,
-    output_perturbed,
-    output_true,
-    rk4_perturbed,
-    rk4_true,
-)
-from plot_green import plot_greenhouse
+from envs.model import output_true
 from nominal_MPC import NominalMpc
+from plot_green import plot_greenhouse
 
 np.random.seed(1)
 
@@ -52,7 +36,13 @@ agent = Log(
     level=logging.DEBUG,
     log_frequencies={"on_timestep_end": 1},
 )
-agent.evaluate(env=env, episodes=num_episodes, seed=1, raises=False)
+agent.evaluate(
+    env=env,
+    episodes=num_episodes,
+    seed=1,
+    raises=False,
+    env_reset_options={"first_day_index": 0},
+)
 
 # extract data
 if len(env.observations) > 0:
@@ -70,13 +60,13 @@ R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
 TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
 # generate output
 y = np.asarray([output_true(X[k, :]) for k in range(X.shape[0])]).squeeze()
-d = env.disturbance_profile_data
+d = env.disturbance_profile
 
 if PLOT:
     plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
 
 param_dict = {}
-identifier = "nom_0.2"
+identifier = "day_0"
 if STORE_DATA:
     with open(
         identifier + ".pkl",
