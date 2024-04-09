@@ -9,7 +9,7 @@ plt.rc("text", usetex=True)
 plt.rc("font", size=14)
 plt.style.use("bmh")
 
-num_episodes = 1
+num_episodes = 100
 days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 nx = 4
@@ -19,11 +19,9 @@ rk4 = True
 lr = 0.0001
 
 with open(
-    # f"results/green_V1_lr_{lr}_ne_{num_episodes}_allp_{allp}_rk4_{rk4}.pkl",
-    # "results/nominal/models/6_green_nom_pred_rk4_real_nonlin.pkl",
-    # "results/green_sample_5.pkl",
-    f"results/nominal/models/green_nom_pred_rk4_real_rk4.pkl",
-    # f"results_large/5_green_V1_lr_{lr}_ne_{num_episodes}_allp_{allp}_rk4_{rk4}.pkl",
+    "results/test_26.pkl",
+    # "results/sample/sample_5.pkl",
+    # "results/nominal/disturbance_profiles/nom_first_day_200.pkl",
     "rb",
 ) as file:
     X = pickle.load(file)
@@ -53,10 +51,12 @@ axs[1].set_ylabel("$L (ep)$")
 
 # yields
 yields = [y[(i + 1) * ep_len + i, 0] for i in range(num_episodes)]
-_, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
+_, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
 axs[0].plot(yields, "o", markersize=1)
 axs[0].set_ylabel(r"$yield$")
-cnstr_viols = np.zeros((num_episodes, 1))
+
+num_cnstr_viols = np.zeros((num_episodes, 1))
+mag_cnstr_viols = np.zeros((num_episodes, 1))
 for i in range(num_episodes):
     for k in range(ep_len):
         y_max = get_y_max(d[:, [i * ep_len + k]])
@@ -65,9 +65,16 @@ for i in range(num_episodes):
         if any(y[[i * (ep_len + 1) + k], :].reshape(4, 1) > y_max) or any(
             y[[i * (ep_len + 1) + k], :].reshape(4, 1) < y_min
         ):
-            cnstr_viols[i, :] += 1
-axs[1].plot(cnstr_viols, "o", markersize=1)
-axs[1].set_ylabel(r"$cnstr viols$")
+            num_cnstr_viols[i, :] += 1
+            y_below = y[[i * (ep_len + 1) + k], :].reshape(4, 1) - y_min
+            y_below[y_below > 0] = 0
+            y_above = y_max - y[[i * (ep_len + 1) + k], :].reshape(4, 1)
+            y_above[y_above > 0] = 0
+            mag_cnstr_viols[i, :] += np.linalg.norm(y_above + y_below, ord=2)
+axs[1].plot(num_cnstr_viols, "o", markersize=1)
+axs[1].set_ylabel(r"$num cnstr viols$")
+axs[2].plot(mag_cnstr_viols, "o", markersize=1)
+axs[2].set_ylabel(r"$mag cnstr viols$")
 
 # states and input
 # first ep
@@ -107,8 +114,15 @@ for i in range(4):
 cost_keys = [x for x in list(param_list.keys()) if x.startswith("p") is False]
 if len(cost_keys) > 0:
     _, axs = plt.subplots(len(cost_keys), 1, constrained_layout=True, sharex=True)
+    if len(cost_keys) == 1:
+        axs = [axs, None]
     for i in range(len(cost_keys)):
-        axs[i].plot(param_list[cost_keys[i]])
+        axs[i].plot(
+            [
+                (param_list[cost_keys[i]][j]).squeeze()
+                for j in range(len(param_list[cost_keys[i]]))
+            ]
+        )
         axs[i].set_ylabel(cost_keys[i])
 
     param_keys = [x for x in list(param_list.keys()) if x.startswith("p") is True]
