@@ -1,4 +1,3 @@
-import datetime
 import logging
 import pickle
 from typing import Literal
@@ -15,12 +14,13 @@ from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseSampleAgent, LettuceGreenHouse
 from envs.model import (
+    generate_parameters,
     get_control_bounds,
     get_model_details,
     multi_sample_euler_step,
     multi_sample_output,
     multi_sample_rk4_step,
-    output_real,
+    output_true,
 )
 from plot_green import plot_greenhouse
 
@@ -33,7 +33,10 @@ nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
 
 c_u = np.array([10, 1, 1])  # penalty on each control signal
-c_y = np.array([10e3])  # reward on yield
+c_y = np.array([1e3])  # reward on yield
+
+# generate the perturbed parameters
+generate_parameters(0.2)
 
 
 class SampleBasedMpc(Mpc[cs.SX]):
@@ -43,7 +46,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
     discount_factor = 1
 
     def __init__(self, Ns, prediction_model: Literal["euler", "rk4"] = "rk4") -> None:
-        w = 1e3 * np.ones((1, nx * Ns))  # penalty on constraint violations
+        w = np.full((1, nx * Ns), 1e3)  # penalty on constraint violations
         N = self.horizon
         self.Ns = Ns
         nlp = Nlp[cs.SX](debug=False)
@@ -118,15 +121,25 @@ class SampleBasedMpc(Mpc[cs.SX]):
             "bound_consistency": True,
             "calc_lam_x": True,
             "calc_lam_p": False,
-            # "jit": True,
-            # "jit_cleanup": True,
             "ipopt": {
-                # "linear_solver": "ma97",
-                # "linear_system_scaling": "mc19",
-                # "nlp_scaling_method": "equilibration-based",
-                "max_iter": 500,
                 "sb": "yes",
                 "print_level": 0,
+                "max_iter": 500,
+                "print_user_options": "yes",
+                "print_options_documentation": "no",
+                #
+                "linear_solver": "spral",
+                "nlp_scaling_method": "gradient-based",
+                "nlp_scaling_max_gradient": 10,
+                #
+                # "linear_system_scaling": "slack-based",
+                # feasibility tol
+                # 
+                # "acceptable_tol"
+                # "acceptable_obj_change_tol"
+                # tol
+                # barrier_tol_factor
+                # 
             },
         }
         self.init_solver(opts, solver="ipopt")
@@ -144,7 +157,7 @@ num_episodes = 1
 
 TD = []
 
-Ns = 5
+Ns = 10
 sample_mpc = SampleBasedMpc(Ns=Ns, prediction_model="rk4")
 agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
@@ -168,7 +181,7 @@ print(f"Return = {sum(R.squeeze())}")
 R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
 TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
 # generate output
-y = np.asarray([output_real(X[k, :]) for k in range(X.shape[0])]).squeeze()
+y = np.asarray([output_true(X[k, :]) for k in range(X.shape[0])]).squeeze()
 d = env.disturbance_profile_data
 
 if PLOT:
@@ -177,7 +190,7 @@ if PLOT:
 param_dict = {}
 if STORE_DATA:
     with open(
-        f"green_sample_{Ns}_" + datetime.datetime.now().strftime("%d%H%M%S%f") + ".pkl",
+        f"sample_{Ns}.pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)

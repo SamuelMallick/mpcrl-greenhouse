@@ -26,7 +26,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     disturbance_profile = get_disturbance_profile(
         init_day=0, days_to_grow=40
     )  # gets re-called in reset
-    disturbance_profile_data = np.empty((4, 0))
     step_counter = 0
 
     # noise terms for dynamics
@@ -88,14 +87,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             first_day_index = 0
         self.disturbance_profile = get_disturbance_profile(
             first_day_index, days_to_grow=self.days_to_grow
-        )
-
-        # take only the disturbance data for the growing days
-        self.disturbance_profile_data = np.hstack(
-            (
-                self.disturbance_profile_data,
-                self.disturbance_profile[:, : self.steps_per_day * self.days_to_grow],
-            )
         )
         self.step_counter = 0
         super().reset(seed=seed, options=options)
