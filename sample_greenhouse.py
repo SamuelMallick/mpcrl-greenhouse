@@ -27,7 +27,7 @@ from plot_green import plot_greenhouse
 np.random.seed(1)
 
 STORE_DATA = True
-PLOT = True
+PLOT = False
 
 nx, nu, nd, ts, _ = get_model_details()
 u_min, u_max, du_lim = get_control_bounds()
@@ -115,7 +115,7 @@ class SampleBasedMpc(Mpc[cs.SX]):
         # solver
         opts = {
             "expand": True,
-            "show_eval_warnings": True,
+            "show_eval_warnings": False,
             "warn_initial_bounds": True,
             "print_time": False,
             "bound_consistency": True,
@@ -124,22 +124,12 @@ class SampleBasedMpc(Mpc[cs.SX]):
             "ipopt": {
                 "sb": "yes",
                 "print_level": 0,
-                "max_iter": 500,
+                "max_iter": 2000,
                 "print_user_options": "yes",
                 "print_options_documentation": "no",
-                #
-                "linear_solver": "spral",
+                "linear_solver": "ma57",  # spral
                 "nlp_scaling_method": "gradient-based",
                 "nlp_scaling_max_gradient": 10,
-                #
-                # "linear_system_scaling": "slack-based",
-                # feasibility tol
-                # 
-                # "acceptable_tol"
-                # "acceptable_obj_change_tol"
-                # tol
-                # barrier_tol_factor
-                # 
             },
         }
         self.init_solver(opts, solver="ipopt")
@@ -163,6 +153,8 @@ agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
     level=logging.DEBUG,
     log_frequencies={"on_timestep_end": 1},
+    to_file=True,
+    log_name=f"log_sample_{Ns}",
 )
 agent.evaluate(env=env, episodes=num_episodes, seed=1, raises=False)
 

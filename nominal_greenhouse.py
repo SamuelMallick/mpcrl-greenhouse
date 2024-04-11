@@ -29,7 +29,12 @@ num_episodes = 1
 
 TD = []
 
-mpc = NominalMpc(prediction_model="rk4", correct_model=True, perturb_list=[])
+predic_mod = "euler"
+correct_mod = True
+
+mpc = NominalMpc(
+    prediction_model=predic_mod, correct_model=correct_mod, perturb_list=[]
+)
 # mpc = NominalMpc(prediction_model="rk4")
 agent = Log(
     GreenhouseAgent(mpc, {}),
@@ -42,6 +47,8 @@ agent.evaluate(
     seed=1,
     raises=False,
     env_reset_options={"first_day_index": 0},
+    to_file=True,
+    log_name=f"nom_{predic_mod}_{correct_mod}",
 )
 
 # extract data
@@ -66,7 +73,6 @@ if PLOT:
     plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
 
 param_dict = {}
-identifier = "day_0"
 if STORE_DATA:
     with open(
         identifier + ".pkl",

@@ -9,7 +9,7 @@ plt.rc("text", usetex=True)
 plt.rc("font", size=14)
 plt.style.use("bmh")
 
-num_episodes = 100
+num_episodes = 1
 days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 nx = 4
@@ -19,7 +19,7 @@ rk4 = True
 lr = 0.0001
 
 with open(
-    "results/test_26.pkl",
+    "results/nominal/models/green_nom_pred_euler_real_nonlinear.pkl",
     # "results/sample/sample_5.pkl",
     # "results/nominal/disturbance_profiles/nom_first_day_200.pkl",
     "rb",
