@@ -1,0 +1,551 @@
+log_default@2024-04-23,13:59:09> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:01:02> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:02:04> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 1.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 2.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 3.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 4.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 5.
+log_default@2024-04-23,14:02:05> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[562.971].
+log_default@2024-04-23,14:02:05> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 1.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 2.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 3.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 4.
+log_default@2024-04-23,14:02:05> episode 0 stepped at time 5.
+log_default@2024-04-23,14:02:06> episode 1 stepped at time 1.
+log_default@2024-04-23,14:02:06> episode 1 stepped at time 2.
+log_default@2024-04-23,14:02:06> episode 1 stepped at time 3.
+log_default@2024-04-23,14:02:06> episode 1 stepped at time 4.
+log_default@2024-04-23,14:02:06> episode 1 stepped at time 5.
+log_default@2024-04-23,14:02:06> episode 2 stepped at time 1.
+log_default@2024-04-23,14:02:06> episode 2 stepped at time 2.
+log_default@2024-04-23,14:02:07> episode 2 stepped at time 3.
+log_default@2024-04-23,14:02:07> episode 2 stepped at time 4.
+log_default@2024-04-23,14:02:07> episode 2 stepped at time 5.
+log_default@2024-04-23,14:02:07> episode 3 stepped at time 1.
+log_default@2024-04-23,14:02:07> episode 3 stepped at time 2.
+log_default@2024-04-23,14:02:07> episode 3 stepped at time 3.
+log_default@2024-04-23,14:02:07> episode 3 stepped at time 4.
+log_default@2024-04-23,14:02:08> episode 3 stepped at time 5.
+log_default@2024-04-23,14:02:08> episode 4 stepped at time 1.
+log_default@2024-04-23,14:02:08> episode 4 stepped at time 2.
+log_default@2024-04-23,14:02:08> episode 4 stepped at time 3.
+log_default@2024-04-23,14:02:08> episode 4 stepped at time 4.
+log_default@2024-04-23,14:02:08> episode 4 stepped at time 5.
+log_default@2024-04-23,14:02:08> episode 5 stepped at time 1.
+log_default@2024-04-23,14:02:09> episode 5 stepped at time 2.
+log_default@2024-04-23,14:02:09> episode 5 stepped at time 3.
+log_default@2024-04-23,14:02:09> episode 5 stepped at time 4.
+log_default@2024-04-23,14:02:09> episode 5 stepped at time 5.
+log_default@2024-04-23,14:02:09> episode 6 stepped at time 1.
+log_default@2024-04-23,14:02:09> episode 6 stepped at time 2.
+log_default@2024-04-23,14:02:09> episode 6 stepped at time 3.
+log_default@2024-04-23,14:02:09> episode 6 stepped at time 4.
+log_default@2024-04-23,14:02:10> episode 6 stepped at time 5.
+log_default@2024-04-23,14:02:10> episode 7 stepped at time 1.
+log_default@2024-04-23,14:02:10> episode 7 stepped at time 2.
+log_default@2024-04-23,14:02:10> episode 7 stepped at time 3.
+log_default@2024-04-23,14:02:10> episode 7 stepped at time 4.
+log_default@2024-04-23,14:02:10> episode 7 stepped at time 5.
+log_default@2024-04-23,14:02:10> episode 8 stepped at time 1.
+log_default@2024-04-23,14:02:11> episode 8 stepped at time 2.
+log_default@2024-04-23,14:02:11> episode 8 stepped at time 3.
+log_default@2024-04-23,14:02:11> episode 8 stepped at time 4.
+log_default@2024-04-23,14:02:11> episode 8 stepped at time 5.
+log_default@2024-04-23,14:02:11> episode 9 stepped at time 1.
+log_default@2024-04-23,14:02:11> episode 9 stepped at time 2.
+log_default@2024-04-23,14:02:11> episode 9 stepped at time 3.
+log_default@2024-04-23,14:02:12> episode 9 stepped at time 4.
+log_default@2024-04-23,14:02:12> episode 9 stepped at time 5.
+log_default@2024-04-23,14:02:12> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:02:12> episode 0 stepped at time 1.
+log_default@2024-04-23,14:02:12> episode 0 stepped at time 2.
+log_default@2024-04-23,14:02:12> episode 0 stepped at time 3.
+log_default@2024-04-23,14:02:12> episode 0 stepped at time 4.
+log_default@2024-04-23,14:02:12> episode 0 stepped at time 5.
+log_default@2024-04-23,14:02:12> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[566.812].
+log_default@2024-04-23,14:02:12> episode 10 stepped at time 1.
+log_default@2024-04-23,14:02:12> episode 10 stepped at time 2.
+log_default@2024-04-23,14:02:12> episode 10 stepped at time 3.
+log_default@2024-04-23,14:02:13> episode 10 stepped at time 4.
+log_default@2024-04-23,14:02:13> episode 10 stepped at time 5.
+log_default@2024-04-23,14:02:13> episode 11 stepped at time 1.
+log_default@2024-04-23,14:02:13> episode 11 stepped at time 2.
+log_default@2024-04-23,14:02:13> episode 11 stepped at time 3.
+log_default@2024-04-23,14:02:13> episode 11 stepped at time 4.
+log_default@2024-04-23,14:02:13> episode 11 stepped at time 5.
+log_default@2024-04-23,14:02:14> episode 12 stepped at time 1.
+log_default@2024-04-23,14:02:14> episode 12 stepped at time 2.
+log_default@2024-04-23,14:02:14> episode 12 stepped at time 3.
+log_default@2024-04-23,14:02:14> episode 12 stepped at time 4.
+log_default@2024-04-23,14:02:14> episode 12 stepped at time 5.
+log_default@2024-04-23,14:02:14> episode 13 stepped at time 1.
+log_default@2024-04-23,14:02:14> episode 13 stepped at time 2.
+log_default@2024-04-23,14:02:14> episode 13 stepped at time 3.
+log_default@2024-04-23,14:02:15> episode 13 stepped at time 4.
+log_default@2024-04-23,14:02:15> episode 13 stepped at time 5.
+log_default@2024-04-23,14:02:15> episode 14 stepped at time 1.
+log_default@2024-04-23,14:02:15> episode 14 stepped at time 2.
+log_default@2024-04-23,14:02:15> episode 14 stepped at time 3.
+log_default@2024-04-23,14:02:15> episode 14 stepped at time 4.
+log_default@2024-04-23,14:02:15> episode 14 stepped at time 5.
+log_default@2024-04-23,14:02:16> episode 15 stepped at time 1.
+log_default@2024-04-23,14:02:16> episode 15 stepped at time 2.
+log_default@2024-04-23,14:02:16> episode 15 stepped at time 3.
+log_default@2024-04-23,14:02:16> episode 15 stepped at time 4.
+log_default@2024-04-23,14:02:16> episode 15 stepped at time 5.
+log_default@2024-04-23,14:02:16> episode 16 stepped at time 1.
+log_default@2024-04-23,14:02:16> episode 16 stepped at time 2.
+log_default@2024-04-23,14:02:17> episode 16 stepped at time 3.
+log_default@2024-04-23,14:02:17> episode 16 stepped at time 4.
+log_default@2024-04-23,14:02:17> episode 16 stepped at time 5.
+log_default@2024-04-23,14:02:17> episode 17 stepped at time 1.
+log_default@2024-04-23,14:02:17> episode 17 stepped at time 2.
+log_default@2024-04-23,14:02:17> episode 17 stepped at time 3.
+log_default@2024-04-23,14:02:17> episode 17 stepped at time 4.
+log_default@2024-04-23,14:02:18> episode 17 stepped at time 5.
+log_default@2024-04-23,14:02:18> episode 18 stepped at time 1.
+log_default@2024-04-23,14:02:18> episode 18 stepped at time 2.
+log_default@2024-04-23,14:02:18> episode 18 stepped at time 3.
+log_default@2024-04-23,14:02:18> episode 18 stepped at time 4.
+log_default@2024-04-23,14:02:18> episode 18 stepped at time 5.
+log_default@2024-04-23,14:02:18> episode 19 stepped at time 1.
+log_default@2024-04-23,14:02:18> episode 19 stepped at time 2.
+log_default@2024-04-23,14:02:19> episode 19 stepped at time 3.
+log_default@2024-04-23,14:02:19> episode 19 stepped at time 4.
+log_default@2024-04-23,14:02:19> episode 19 stepped at time 5.
+log_default@2024-04-23,14:02:19> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:02:19> episode 0 stepped at time 1.
+log_default@2024-04-23,14:02:19> episode 0 stepped at time 2.
+log_default@2024-04-23,14:02:19> episode 0 stepped at time 3.
+log_default@2024-04-23,14:02:19> episode 0 stepped at time 4.
+log_default@2024-04-23,14:02:19> episode 0 stepped at time 5.
+log_default@2024-04-23,14:02:19> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[567.763].
+log_default@2024-04-23,14:02:19> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[153.962 154.121 155.735 329.026 375.64  156.464 376.679 156.885 156.995
+ 376.866 290.641 330.372 376.997 290.761 377.235 377.253 377.278 377.43
+ 157.587 331.065].
+log_default@2024-04-23,14:05:14> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:05:38> episode 0 stepped at time 1.
+log_default@2024-04-23,14:05:38> episode 0 stepped at time 2.
+log_default@2024-04-23,14:05:38> episode 0 stepped at time 3.
+log_default@2024-04-23,14:05:38> episode 0 stepped at time 4.
+log_default@2024-04-23,14:05:38> episode 0 stepped at time 5.
+log_default@2024-04-23,14:05:38> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[562.971].
+log_default@2024-04-23,14:05:38> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:05:56> episode 0 stepped at time 1.
+log_default@2024-04-23,14:05:56> episode 0 stepped at time 2.
+log_default@2024-04-23,14:05:56> episode 0 stepped at time 3.
+log_default@2024-04-23,14:05:56> episode 0 stepped at time 4.
+log_default@2024-04-23,14:05:57> episode 0 stepped at time 5.
+log_default@2024-04-23,14:06:06> episode 1 stepped at time 1.
+log_default@2024-04-23,14:06:06> episode 1 stepped at time 2.
+log_default@2024-04-23,14:06:06> episode 1 stepped at time 3.
+log_default@2024-04-23,14:06:06> episode 1 stepped at time 4.
+log_default@2024-04-23,14:06:07> episode 1 stepped at time 5.
+log_default@2024-04-23,14:06:10> episode 2 stepped at time 1.
+log_default@2024-04-23,14:06:10> episode 2 stepped at time 2.
+log_default@2024-04-23,14:06:10> episode 2 stepped at time 3.
+log_default@2024-04-23,14:06:11> episode 2 stepped at time 4.
+log_default@2024-04-23,14:06:11> episode 2 stepped at time 5.
+log_default@2024-04-23,14:06:15> episode 3 stepped at time 1.
+log_default@2024-04-23,14:06:15> episode 3 stepped at time 2.
+log_default@2024-04-23,14:06:15> episode 3 stepped at time 3.
+log_default@2024-04-23,14:06:15> episode 3 stepped at time 4.
+log_default@2024-04-23,14:06:15> episode 3 stepped at time 5.
+log_default@2024-04-23,14:06:38> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:06:45> episode 0 stepped at time 1.
+log_default@2024-04-23,14:06:45> episode 0 stepped at time 2.
+log_default@2024-04-23,14:06:45> episode 0 stepped at time 3.
+log_default@2024-04-23,14:06:45> episode 0 stepped at time 4.
+log_default@2024-04-23,14:06:45> episode 0 stepped at time 5.
+log_default@2024-04-23,14:06:45> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[448.469].
+log_default@2024-04-23,14:06:45> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:06:45> episode 0 stepped at time 1.
+log_default@2024-04-23,14:06:46> episode 0 stepped at time 2.
+log_default@2024-04-23,14:06:46> episode 0 stepped at time 3.
+log_default@2024-04-23,14:06:46> episode 0 stepped at time 4.
+log_default@2024-04-23,14:06:46> episode 0 stepped at time 5.
+log_default@2024-04-23,14:06:46> episode 1 stepped at time 1.
+log_default@2024-04-23,14:06:46> episode 1 stepped at time 2.
+log_default@2024-04-23,14:06:46> episode 1 stepped at time 3.
+log_default@2024-04-23,14:06:46> episode 1 stepped at time 4.
+log_default@2024-04-23,14:06:47> episode 1 stepped at time 5.
+log_default@2024-04-23,14:06:47> episode 2 stepped at time 1.
+log_default@2024-04-23,14:06:47> episode 2 stepped at time 2.
+log_default@2024-04-23,14:06:47> episode 2 stepped at time 3.
+log_default@2024-04-23,14:06:47> episode 2 stepped at time 4.
+log_default@2024-04-23,14:06:47> episode 2 stepped at time 5.
+log_default@2024-04-23,14:06:47> episode 3 stepped at time 1.
+log_default@2024-04-23,14:06:48> episode 3 stepped at time 2.
+log_default@2024-04-23,14:06:48> episode 3 stepped at time 3.
+log_default@2024-04-23,14:06:48> episode 3 stepped at time 4.
+log_default@2024-04-23,14:06:48> episode 3 stepped at time 5.
+log_default@2024-04-23,14:06:48> episode 4 stepped at time 1.
+log_default@2024-04-23,14:06:48> episode 4 stepped at time 2.
+log_default@2024-04-23,14:06:48> episode 4 stepped at time 3.
+log_default@2024-04-23,14:06:48> episode 4 stepped at time 4.
+log_default@2024-04-23,14:06:49> episode 4 stepped at time 5.
+log_default@2024-04-23,14:06:49> episode 5 stepped at time 1.
+log_default@2024-04-23,14:06:49> episode 5 stepped at time 2.
+log_default@2024-04-23,14:06:49> episode 5 stepped at time 3.
+log_default@2024-04-23,14:06:49> episode 5 stepped at time 4.
+log_default@2024-04-23,14:06:49> episode 5 stepped at time 5.
+log_default@2024-04-23,14:06:49> episode 6 stepped at time 1.
+log_default@2024-04-23,14:06:50> episode 6 stepped at time 2.
+log_default@2024-04-23,14:06:50> episode 6 stepped at time 3.
+log_default@2024-04-23,14:06:50> episode 6 stepped at time 4.
+log_default@2024-04-23,14:06:50> episode 6 stepped at time 5.
+log_default@2024-04-23,14:06:50> episode 7 stepped at time 1.
+log_default@2024-04-23,14:06:50> episode 7 stepped at time 2.
+log_default@2024-04-23,14:06:50> episode 7 stepped at time 3.
+log_default@2024-04-23,14:06:50> episode 7 stepped at time 4.
+log_default@2024-04-23,14:06:51> episode 7 stepped at time 5.
+log_default@2024-04-23,14:06:51> episode 8 stepped at time 1.
+log_default@2024-04-23,14:06:51> episode 8 stepped at time 2.
+log_default@2024-04-23,14:06:51> episode 8 stepped at time 3.
+log_default@2024-04-23,14:06:51> episode 8 stepped at time 4.
+log_default@2024-04-23,14:06:51> episode 8 stepped at time 5.
+log_default@2024-04-23,14:06:51> episode 9 stepped at time 1.
+log_default@2024-04-23,14:06:52> episode 9 stepped at time 2.
+log_default@2024-04-23,14:06:52> episode 9 stepped at time 3.
+log_default@2024-04-23,14:06:52> episode 9 stepped at time 4.
+log_default@2024-04-23,14:06:52> episode 9 stepped at time 5.
+log_default@2024-04-23,14:06:52> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:06:52> episode 0 stepped at time 1.
+log_default@2024-04-23,14:06:52> episode 0 stepped at time 2.
+log_default@2024-04-23,14:06:52> episode 0 stepped at time 3.
+log_default@2024-04-23,14:06:52> episode 0 stepped at time 4.
+log_default@2024-04-23,14:06:52> episode 0 stepped at time 5.
+log_default@2024-04-23,14:06:52> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[449.295].
+log_default@2024-04-23,14:06:52> episode 10 stepped at time 1.
+log_default@2024-04-23,14:06:53> episode 10 stepped at time 2.
+log_default@2024-04-23,14:06:53> episode 10 stepped at time 3.
+log_default@2024-04-23,14:06:53> episode 10 stepped at time 4.
+log_default@2024-04-23,14:06:53> episode 10 stepped at time 5.
+log_default@2024-04-23,14:06:53> episode 11 stepped at time 1.
+log_default@2024-04-23,14:06:53> episode 11 stepped at time 2.
+log_default@2024-04-23,14:06:53> episode 11 stepped at time 3.
+log_default@2024-04-23,14:06:53> episode 11 stepped at time 4.
+log_default@2024-04-23,14:06:54> episode 11 stepped at time 5.
+log_default@2024-04-23,14:06:54> episode 12 stepped at time 1.
+log_default@2024-04-23,14:06:54> episode 12 stepped at time 2.
+log_default@2024-04-23,14:06:54> episode 12 stepped at time 3.
+log_default@2024-04-23,14:06:54> episode 12 stepped at time 4.
+log_default@2024-04-23,14:06:54> episode 12 stepped at time 5.
+log_default@2024-04-23,14:06:54> episode 13 stepped at time 1.
+log_default@2024-04-23,14:06:55> episode 13 stepped at time 2.
+log_default@2024-04-23,14:06:55> episode 13 stepped at time 3.
+log_default@2024-04-23,14:06:55> episode 13 stepped at time 4.
+log_default@2024-04-23,14:06:55> episode 13 stepped at time 5.
+log_default@2024-04-23,14:06:55> episode 14 stepped at time 1.
+log_default@2024-04-23,14:06:55> episode 14 stepped at time 2.
+log_default@2024-04-23,14:06:55> episode 14 stepped at time 3.
+log_default@2024-04-23,14:06:55> episode 14 stepped at time 4.
+log_default@2024-04-23,14:06:56> episode 14 stepped at time 5.
+log_default@2024-04-23,14:06:56> episode 15 stepped at time 1.
+log_default@2024-04-23,14:06:56> episode 15 stepped at time 2.
+log_default@2024-04-23,14:06:56> episode 15 stepped at time 3.
+log_default@2024-04-23,14:06:56> episode 15 stepped at time 4.
+log_default@2024-04-23,14:06:56> episode 15 stepped at time 5.
+log_default@2024-04-23,14:06:56> episode 16 stepped at time 1.
+log_default@2024-04-23,14:06:57> episode 16 stepped at time 2.
+log_default@2024-04-23,14:06:57> episode 16 stepped at time 3.
+log_default@2024-04-23,14:06:57> episode 16 stepped at time 4.
+log_default@2024-04-23,14:06:57> episode 16 stepped at time 5.
+log_default@2024-04-23,14:06:57> episode 17 stepped at time 1.
+log_default@2024-04-23,14:06:57> episode 17 stepped at time 2.
+log_default@2024-04-23,14:06:57> episode 17 stepped at time 3.
+log_default@2024-04-23,14:06:57> episode 17 stepped at time 4.
+log_default@2024-04-23,14:06:58> episode 17 stepped at time 5.
+log_default@2024-04-23,14:06:58> episode 18 stepped at time 1.
+log_default@2024-04-23,14:06:58> episode 18 stepped at time 2.
+log_default@2024-04-23,14:06:58> episode 18 stepped at time 3.
+log_default@2024-04-23,14:06:58> episode 18 stepped at time 4.
+log_default@2024-04-23,14:06:58> episode 18 stepped at time 5.
+log_default@2024-04-23,14:06:58> episode 19 stepped at time 1.
+log_default@2024-04-23,14:06:59> episode 19 stepped at time 2.
+log_default@2024-04-23,14:06:59> episode 19 stepped at time 3.
+log_default@2024-04-23,14:06:59> episode 19 stepped at time 4.
+log_default@2024-04-23,14:06:59> episode 19 stepped at time 5.
+log_default@2024-04-23,14:06:59> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:06:59> episode 0 stepped at time 1.
+log_default@2024-04-23,14:06:59> episode 0 stepped at time 2.
+log_default@2024-04-23,14:06:59> episode 0 stepped at time 3.
+log_default@2024-04-23,14:06:59> episode 0 stepped at time 4.
+log_default@2024-04-23,14:06:59> episode 0 stepped at time 5.
+log_default@2024-04-23,14:06:59> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[450.361].
+log_default@2024-04-23,14:06:59> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[269.572 269.591 269.961 270.118 270.312 270.359 270.438 270.561 270.607
+ 270.699 270.749 270.917 271.019 271.102 271.164 271.264 271.352 271.444
+ 271.57  271.684].
+log_default@2024-04-23,14:08:06> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:08:06> episode 0 stepped at time 1.
+log_default@2024-04-23,14:08:06> episode 0 stepped at time 2.
+log_default@2024-04-23,14:08:06> episode 0 stepped at time 3.
+log_default@2024-04-23,14:08:06> episode 0 stepped at time 4.
+log_default@2024-04-23,14:08:06> episode 0 stepped at time 5.
+log_default@2024-04-23,14:08:06> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[448.469].
+log_default@2024-04-23,14:08:06> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:08:07> episode 0 stepped at time 1.
+log_default@2024-04-23,14:08:07> episode 0 stepped at time 2.
+log_default@2024-04-23,14:08:07> episode 0 stepped at time 3.
+log_default@2024-04-23,14:08:07> episode 0 stepped at time 4.
+log_default@2024-04-23,14:08:07> episode 0 stepped at time 5.
+log_default@2024-04-23,14:08:07> episode 1 stepped at time 1.
+log_default@2024-04-23,14:08:07> episode 1 stepped at time 2.
+log_default@2024-04-23,14:08:08> episode 1 stepped at time 3.
+log_default@2024-04-23,14:08:08> episode 1 stepped at time 4.
+log_default@2024-04-23,14:08:08> episode 1 stepped at time 5.
+log_default@2024-04-23,14:08:08> episode 2 stepped at time 1.
+log_default@2024-04-23,14:08:08> episode 2 stepped at time 2.
+log_default@2024-04-23,14:08:08> episode 2 stepped at time 3.
+log_default@2024-04-23,14:08:08> episode 2 stepped at time 4.
+log_default@2024-04-23,14:08:08> episode 2 stepped at time 5.
+log_default@2024-04-23,14:08:09> episode 3 stepped at time 1.
+log_default@2024-04-23,14:08:09> episode 3 stepped at time 2.
+log_default@2024-04-23,14:08:09> episode 3 stepped at time 3.
+log_default@2024-04-23,14:08:09> episode 3 stepped at time 4.
+log_default@2024-04-23,14:08:09> episode 3 stepped at time 5.
+log_default@2024-04-23,14:08:09> episode 4 stepped at time 1.
+log_default@2024-04-23,14:08:09> episode 4 stepped at time 2.
+log_default@2024-04-23,14:08:10> episode 4 stepped at time 3.
+log_default@2024-04-23,14:08:10> episode 4 stepped at time 4.
+log_default@2024-04-23,14:08:10> episode 4 stepped at time 5.
+log_default@2024-04-23,14:08:10> episode 5 stepped at time 1.
+log_default@2024-04-23,14:08:10> episode 5 stepped at time 2.
+log_default@2024-04-23,14:08:10> episode 5 stepped at time 3.
+log_default@2024-04-23,14:08:10> episode 5 stepped at time 4.
+log_default@2024-04-23,14:08:11> episode 5 stepped at time 5.
+log_default@2024-04-23,14:08:11> episode 6 stepped at time 1.
+log_default@2024-04-23,14:08:11> episode 6 stepped at time 2.
+log_default@2024-04-23,14:08:11> episode 6 stepped at time 3.
+log_default@2024-04-23,14:08:11> episode 6 stepped at time 4.
+log_default@2024-04-23,14:08:11> episode 6 stepped at time 5.
+log_default@2024-04-23,14:08:11> episode 7 stepped at time 1.
+log_default@2024-04-23,14:08:12> episode 7 stepped at time 2.
+log_default@2024-04-23,14:08:12> episode 7 stepped at time 3.
+log_default@2024-04-23,14:08:12> episode 7 stepped at time 4.
+log_default@2024-04-23,14:08:12> episode 7 stepped at time 5.
+log_default@2024-04-23,14:08:12> episode 8 stepped at time 1.
+log_default@2024-04-23,14:08:12> episode 8 stepped at time 2.
+log_default@2024-04-23,14:08:12> episode 8 stepped at time 3.
+log_default@2024-04-23,14:08:12> episode 8 stepped at time 4.
+log_default@2024-04-23,14:08:13> episode 8 stepped at time 5.
+log_default@2024-04-23,14:08:13> episode 9 stepped at time 1.
+log_default@2024-04-23,14:08:13> episode 9 stepped at time 2.
+log_default@2024-04-23,14:08:13> episode 9 stepped at time 3.
+log_default@2024-04-23,14:08:13> episode 9 stepped at time 4.
+log_default@2024-04-23,14:08:13> episode 9 stepped at time 5.
+log_default@2024-04-23,14:08:13> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:08:13> episode 0 stepped at time 1.
+log_default@2024-04-23,14:08:13> episode 0 stepped at time 2.
+log_default@2024-04-23,14:08:13> episode 0 stepped at time 3.
+log_default@2024-04-23,14:08:14> episode 0 stepped at time 4.
+log_default@2024-04-23,14:08:14> episode 0 stepped at time 5.
+log_default@2024-04-23,14:08:14> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[451.107].
+log_default@2024-04-23,14:08:14> episode 10 stepped at time 1.
+log_default@2024-04-23,14:08:14> episode 10 stepped at time 2.
+log_default@2024-04-23,14:08:14> episode 10 stepped at time 3.
+log_default@2024-04-23,14:08:14> episode 10 stepped at time 4.
+log_default@2024-04-23,14:08:14> episode 10 stepped at time 5.
+log_default@2024-04-23,14:08:14> episode 11 stepped at time 1.
+log_default@2024-04-23,14:08:15> episode 11 stepped at time 2.
+log_default@2024-04-23,14:08:15> episode 11 stepped at time 3.
+log_default@2024-04-23,14:08:15> episode 11 stepped at time 4.
+log_default@2024-04-23,14:08:15> episode 11 stepped at time 5.
+log_default@2024-04-23,14:08:15> episode 12 stepped at time 1.
+log_default@2024-04-23,14:08:15> episode 12 stepped at time 2.
+log_default@2024-04-23,14:08:15> episode 12 stepped at time 3.
+log_default@2024-04-23,14:08:15> episode 12 stepped at time 4.
+log_default@2024-04-23,14:08:16> episode 12 stepped at time 5.
+log_default@2024-04-23,14:08:16> episode 13 stepped at time 1.
+log_default@2024-04-23,14:08:16> episode 13 stepped at time 2.
+log_default@2024-04-23,14:08:16> episode 13 stepped at time 3.
+log_default@2024-04-23,14:08:16> episode 13 stepped at time 4.
+log_default@2024-04-23,14:08:16> episode 13 stepped at time 5.
+log_default@2024-04-23,14:08:16> episode 14 stepped at time 1.
+log_default@2024-04-23,14:08:17> episode 14 stepped at time 2.
+log_default@2024-04-23,14:08:17> episode 14 stepped at time 3.
+log_default@2024-04-23,14:08:17> episode 14 stepped at time 4.
+log_default@2024-04-23,14:08:17> episode 14 stepped at time 5.
+log_default@2024-04-23,14:08:17> episode 15 stepped at time 1.
+log_default@2024-04-23,14:08:17> episode 15 stepped at time 2.
+log_default@2024-04-23,14:08:17> episode 15 stepped at time 3.
+log_default@2024-04-23,14:08:17> episode 15 stepped at time 4.
+log_default@2024-04-23,14:08:18> episode 15 stepped at time 5.
+log_default@2024-04-23,14:08:18> episode 16 stepped at time 1.
+log_default@2024-04-23,14:08:18> episode 16 stepped at time 2.
+log_default@2024-04-23,14:08:18> episode 16 stepped at time 3.
+log_default@2024-04-23,14:08:18> episode 16 stepped at time 4.
+log_default@2024-04-23,14:08:18> episode 16 stepped at time 5.
+log_default@2024-04-23,14:08:18> episode 17 stepped at time 1.
+log_default@2024-04-23,14:08:19> episode 17 stepped at time 2.
+log_default@2024-04-23,14:08:19> episode 17 stepped at time 3.
+log_default@2024-04-23,14:08:19> episode 17 stepped at time 4.
+log_default@2024-04-23,14:08:19> episode 17 stepped at time 5.
+log_default@2024-04-23,14:08:19> episode 18 stepped at time 1.
+log_default@2024-04-23,14:08:19> episode 18 stepped at time 2.
+log_default@2024-04-23,14:08:19> episode 18 stepped at time 3.
+log_default@2024-04-23,14:08:20> episode 18 stepped at time 4.
+log_default@2024-04-23,14:08:20> episode 18 stepped at time 5.
+log_default@2024-04-23,14:08:20> episode 19 stepped at time 1.
+log_default@2024-04-23,14:08:20> episode 19 stepped at time 2.
+log_default@2024-04-23,14:08:20> episode 19 stepped at time 3.
+log_default@2024-04-23,14:08:20> episode 19 stepped at time 4.
+log_default@2024-04-23,14:08:20> episode 19 stepped at time 5.
+log_default@2024-04-23,14:08:20> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:08:20> episode 0 stepped at time 1.
+log_default@2024-04-23,14:08:20> episode 0 stepped at time 2.
+log_default@2024-04-23,14:08:21> episode 0 stepped at time 3.
+log_default@2024-04-23,14:08:21> episode 0 stepped at time 4.
+log_default@2024-04-23,14:08:21> episode 0 stepped at time 5.
+log_default@2024-04-23,14:08:21> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[453.535].
+log_default@2024-04-23,14:08:21> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[153.962 154.121 155.735 155.787 156.034 155.957 156.172 156.246 156.398
+ 156.472 156.52  159.53  156.79  157.924 158.321 158.443 158.571 158.662
+ 158.743 158.801].
+log_default@2024-04-23,14:09:12> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:09:12> episode 0 stepped at time 1.
+log_default@2024-04-23,14:09:12> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[72.555].
+log_default@2024-04-23,14:09:12> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:09:12> episode 0 stepped at time 1.
+log_default@2024-04-23,14:09:12> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[14.219].
+log_default@2024-04-23,14:09:39> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:10:30> episode 0 stepped at time 1.
+log_default@2024-04-23,14:10:30> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[72.555].
+log_default@2024-04-23,14:10:30> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:11:57> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:12:52> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:14:08> episode 0 stepped at time 1.
+log_default@2024-04-23,14:14:08> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[72.555].
+log_default@2024-04-23,14:14:08> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:17:25> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:17:25> episode 0 stepped at time 1.
+log_default@2024-04-23,14:17:25> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[14.219].
+log_default@2024-04-23,14:17:25> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:17:25> episode 0 stepped at time 1.
+log_default@2024-04-23,14:17:25> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[14.219].
+log_default@2024-04-23,14:17:51> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:17:51> episode 0 stepped at time 1.
+log_default@2024-04-23,14:17:51> episode 0 stepped at time 2.
+log_default@2024-04-23,14:17:51> episode 0 stepped at time 3.
+log_default@2024-04-23,14:17:51> episode 0 stepped at time 4.
+log_default@2024-04-23,14:17:52> episode 0 stepped at time 5.
+log_default@2024-04-23,14:17:52> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[153.962].
+log_default@2024-04-23,14:17:52> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:17:52> episode 0 stepped at time 1.
+log_default@2024-04-23,14:17:52> episode 0 stepped at time 2.
+log_default@2024-04-23,14:17:52> episode 0 stepped at time 3.
+log_default@2024-04-23,14:17:52> episode 0 stepped at time 4.
+log_default@2024-04-23,14:17:52> episode 0 stepped at time 5.
+log_default@2024-04-23,14:17:52> episode 1 stepped at time 1.
+log_default@2024-04-23,14:17:52> episode 1 stepped at time 2.
+log_default@2024-04-23,14:17:53> episode 1 stepped at time 3.
+log_default@2024-04-23,14:17:53> episode 1 stepped at time 4.
+log_default@2024-04-23,14:17:53> episode 1 stepped at time 5.
+log_default@2024-04-23,14:17:53> episode 2 stepped at time 1.
+log_default@2024-04-23,14:17:53> episode 2 stepped at time 2.
+log_default@2024-04-23,14:17:53> episode 2 stepped at time 3.
+log_default@2024-04-23,14:17:53> episode 2 stepped at time 4.
+log_default@2024-04-23,14:17:53> episode 2 stepped at time 5.
+log_default@2024-04-23,14:17:54> episode 3 stepped at time 1.
+log_default@2024-04-23,14:17:54> episode 3 stepped at time 2.
+log_default@2024-04-23,14:17:54> episode 3 stepped at time 3.
+log_default@2024-04-23,14:17:54> episode 3 stepped at time 4.
+log_default@2024-04-23,14:17:54> episode 3 stepped at time 5.
+log_default@2024-04-23,14:17:54> episode 4 stepped at time 1.
+log_default@2024-04-23,14:17:54> episode 4 stepped at time 2.
+log_default@2024-04-23,14:17:54> episode 4 stepped at time 3.
+log_default@2024-04-23,14:17:55> episode 4 stepped at time 4.
+log_default@2024-04-23,14:17:55> episode 4 stepped at time 5.
+log_default@2024-04-23,14:17:55> episode 5 stepped at time 1.
+log_default@2024-04-23,14:17:55> episode 5 stepped at time 2.
+log_default@2024-04-23,14:17:55> episode 5 stepped at time 3.
+log_default@2024-04-23,14:17:55> episode 5 stepped at time 4.
+log_default@2024-04-23,14:17:55> episode 5 stepped at time 5.
+log_default@2024-04-23,14:17:55> episode 6 stepped at time 1.
+log_default@2024-04-23,14:17:56> episode 6 stepped at time 2.
+log_default@2024-04-23,14:17:56> episode 6 stepped at time 3.
+log_default@2024-04-23,14:17:56> episode 6 stepped at time 4.
+log_default@2024-04-23,14:17:56> episode 6 stepped at time 5.
+log_default@2024-04-23,14:17:56> episode 7 stepped at time 1.
+log_default@2024-04-23,14:17:56> episode 7 stepped at time 2.
+log_default@2024-04-23,14:17:56> episode 7 stepped at time 3.
+log_default@2024-04-23,14:17:56> episode 7 stepped at time 4.
+log_default@2024-04-23,14:17:56> episode 7 stepped at time 5.
+log_default@2024-04-23,14:17:57> episode 8 stepped at time 1.
+log_default@2024-04-23,14:17:57> episode 8 stepped at time 2.
+log_default@2024-04-23,14:17:57> episode 8 stepped at time 3.
+log_default@2024-04-23,14:17:57> episode 8 stepped at time 4.
+log_default@2024-04-23,14:17:57> episode 8 stepped at time 5.
+log_default@2024-04-23,14:17:57> episode 9 stepped at time 1.
+log_default@2024-04-23,14:17:57> episode 9 stepped at time 2.
+log_default@2024-04-23,14:17:57> episode 9 stepped at time 3.
+log_default@2024-04-23,14:17:58> episode 9 stepped at time 4.
+log_default@2024-04-23,14:17:58> episode 9 stepped at time 5.
+log_default@2024-04-23,14:17:58> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:17:58> episode 0 stepped at time 1.
+log_default@2024-04-23,14:17:58> episode 0 stepped at time 2.
+log_default@2024-04-23,14:17:58> episode 0 stepped at time 3.
+log_default@2024-04-23,14:17:58> episode 0 stepped at time 4.
+log_default@2024-04-23,14:17:58> episode 0 stepped at time 5.
+log_default@2024-04-23,14:17:58> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[156.505].
+log_default@2024-04-23,14:17:58> episode 10 stepped at time 1.
+log_default@2024-04-23,14:17:58> episode 10 stepped at time 2.
+log_default@2024-04-23,14:17:58> episode 10 stepped at time 3.
+log_default@2024-04-23,14:17:58> episode 10 stepped at time 4.
+log_default@2024-04-23,14:17:59> episode 10 stepped at time 5.
+log_default@2024-04-23,14:17:59> episode 11 stepped at time 1.
+log_default@2024-04-23,14:17:59> episode 11 stepped at time 2.
+log_default@2024-04-23,14:17:59> episode 11 stepped at time 3.
+log_default@2024-04-23,14:17:59> episode 11 stepped at time 4.
+log_default@2024-04-23,14:17:59> episode 11 stepped at time 5.
+log_default@2024-04-23,14:17:59> episode 12 stepped at time 1.
+log_default@2024-04-23,14:17:59> episode 12 stepped at time 2.
+log_default@2024-04-23,14:18:00> episode 12 stepped at time 3.
+log_default@2024-04-23,14:18:00> episode 12 stepped at time 4.
+log_default@2024-04-23,14:18:00> episode 12 stepped at time 5.
+log_default@2024-04-23,14:18:00> episode 13 stepped at time 1.
+log_default@2024-04-23,14:18:00> episode 13 stepped at time 2.
+log_default@2024-04-23,14:18:00> episode 13 stepped at time 3.
+log_default@2024-04-23,14:18:00> episode 13 stepped at time 4.
+log_default@2024-04-23,14:18:00> episode 13 stepped at time 5.
+log_default@2024-04-23,14:18:01> episode 14 stepped at time 1.
+log_default@2024-04-23,14:18:01> episode 14 stepped at time 2.
+log_default@2024-04-23,14:18:01> episode 14 stepped at time 3.
+log_default@2024-04-23,14:18:01> episode 14 stepped at time 4.
+log_default@2024-04-23,14:18:01> episode 14 stepped at time 5.
+log_default@2024-04-23,14:18:01> episode 15 stepped at time 1.
+log_default@2024-04-23,14:18:01> episode 15 stepped at time 2.
+log_default@2024-04-23,14:18:01> episode 15 stepped at time 3.
+log_default@2024-04-23,14:18:02> episode 15 stepped at time 4.
+log_default@2024-04-23,14:18:02> episode 15 stepped at time 5.
+log_default@2024-04-23,14:18:02> episode 16 stepped at time 1.
+log_default@2024-04-23,14:18:02> episode 16 stepped at time 2.
+log_default@2024-04-23,14:18:02> episode 16 stepped at time 3.
+log_default@2024-04-23,14:18:02> episode 16 stepped at time 4.
+log_default@2024-04-23,14:18:02> episode 16 stepped at time 5.
+log_default@2024-04-23,14:18:02> episode 17 stepped at time 1.
+log_default@2024-04-23,14:18:02> episode 17 stepped at time 2.
+log_default@2024-04-23,14:18:03> episode 17 stepped at time 3.
+log_default@2024-04-23,14:18:03> episode 17 stepped at time 4.
+log_default@2024-04-23,14:18:03> episode 17 stepped at time 5.
+log_default@2024-04-23,14:18:03> episode 18 stepped at time 1.
+log_default@2024-04-23,14:18:03> episode 18 stepped at time 2.
+log_default@2024-04-23,14:18:03> episode 18 stepped at time 3.
+log_default@2024-04-23,14:18:03> episode 18 stepped at time 4.
+log_default@2024-04-23,14:18:03> episode 18 stepped at time 5.
+log_default@2024-04-23,14:18:04> episode 19 stepped at time 1.
+log_default@2024-04-23,14:18:04> episode 19 stepped at time 2.
+log_default@2024-04-23,14:18:04> episode 19 stepped at time 3.
+log_default@2024-04-23,14:18:04> episode 19 stepped at time 4.
+log_default@2024-04-23,14:18:04> episode 19 stepped at time 5.
+log_default@2024-04-23,14:18:04> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
+log_default@2024-04-23,14:18:04> episode 0 stepped at time 1.
+log_default@2024-04-23,14:18:04> episode 0 stepped at time 2.
+log_default@2024-04-23,14:18:04> episode 0 stepped at time 3.
+log_default@2024-04-23,14:18:04> episode 0 stepped at time 4.
+log_default@2024-04-23,14:18:04> episode 0 stepped at time 5.
+log_default@2024-04-23,14:18:04> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[157.739].
+log_default@2024-04-23,14:18:04> training of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> concluded with returns=[153.962 154.121 155.735 155.787 156.034 155.957 156.172 156.246 156.398
+ 156.472 156.519 156.592 156.65  156.981 157.155 157.276 157.41  157.508
+ 157.628 157.708].

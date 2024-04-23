@@ -11,7 +11,7 @@ from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
 from mpcrl import LearnableParameter, LearnableParametersDict
-from mpcrl.wrappers.agents import Log, RecordUpdates
+from mpcrl.wrappers.agents import Log, RecordUpdates, Evaluate
 from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
@@ -39,7 +39,7 @@ if len(sys.argv) > 1:
     STORE_DATA = True
     PLOT = False
 else:
-    from test_configs.test_19 import Test
+    from test_configs.default import Test
 
     test = Test()
 
@@ -163,21 +163,21 @@ class LearningMpc(Mpc[cs.SX]):
         # solver
         opts = {
             "expand": True,
-            "show_eval_warnings": True,
+            "show_eval_warnings": False,
             "warn_initial_bounds": True,
             "print_time": False,
             "bound_consistency": True,
             "calc_lam_x": True,
             "calc_lam_p": False,
-            # "jit": True,
-            # "jit_cleanup": True,
             "ipopt": {
-                # "linear_solver": "ma97",
-                # "linear_system_scaling": "mc19",
-                # "nlp_scaling_method": "equilibration-based",
-                "max_iter": 500,
                 "sb": "yes",
                 "print_level": 0,
+                "max_iter": 2000,
+                "print_user_options": "yes",
+                "print_options_documentation": "no",
+                "linear_solver": "ma57",  # spral
+                "nlp_scaling_method": "gradient-based",
+                "nlp_scaling_max_gradient": 10,
             },
         }
         self.init_solver(opts, solver="ipopt")
@@ -187,11 +187,20 @@ ep_len = test.ep_len
 env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(
-            days_to_grow=test.num_days, model_type=test.base_model, rl_cost=test.rl_cost
+            days_to_grow=test.num_days, model_type=test.base_model, rl_cost=test.rl_cost, testing=False
         ),
         max_episode_steps=int(ep_len),
     )
 )
+eval_env = MonitorEpisodes(
+    TimeLimit(
+        LettuceGreenHouse(
+            days_to_grow=test.num_days, model_type=test.base_model, rl_cost=test.rl_cost, testing=True
+        ),
+        max_episode_steps=int(ep_len),
+    )
+)
+
 
 mpc = LearningMpc()
 param_bounds = get_p_learn_bounds()
@@ -210,25 +219,33 @@ learnable_pars = LearnableParametersDict[cs.SX](
     )
 )
 
-agent = Log(  # type: ignore[var-annotated]
-    RecordUpdates(
-        GreenhouseLearningAgent(
-            mpc=mpc,
-            update_strategy=test.update_strategy,
-            discount_factor=mpc.discount_factor,
-            optimizer=test.optimizer,
-            learnable_parameters=learnable_pars,
-            fixed_parameters=mpc.fixed_pars,
-            exploration=test.exploration,
-            experience=test.experience,
-            hessian_type=test.hessian_type,
-            record_td_errors=True,
-        )
+agent = Evaluate(
+    Log(  # type: ignore[var-annotated]
+        RecordUpdates(
+            GreenhouseLearningAgent(
+                mpc=mpc,
+                update_strategy=test.update_strategy,
+                discount_factor=mpc.discount_factor,
+                optimizer=test.optimizer,
+                learnable_parameters=learnable_pars,
+                fixed_parameters=mpc.fixed_pars,
+                exploration=test.exploration,
+                experience=test.experience,
+                hessian_type=test.hessian_type,
+                record_td_errors=True,
+            )
+        ),
+        level=logging.DEBUG,
+        log_frequencies={"on_timestep_end": 1},
+        to_file=True,
+        log_name=f"log_{test.test_ID}",
     ),
-    level=logging.DEBUG,
-    log_frequencies={"on_timestep_end": 1000},
-    to_file=True,
-    log_name=f"log_{test.test_ID}",
+    eval_env,
+    hook="on_episode_end",
+    frequency=10,  # eval once every 10 episodes
+    eval_immediately=True,
+    deterministic=True,
+    raises=False,
 )
 # evaluate train
 agent.train(env=env, episodes=test.num_episodes, seed=1, raises=False)

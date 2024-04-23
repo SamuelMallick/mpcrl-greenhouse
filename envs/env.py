@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from gymnasium import Env
 from mpcrl import Agent, LstdQLearningAgent
+from random import sample
 
 from envs.model import (
     df_true,
@@ -16,6 +17,8 @@ from envs.model import (
     get_y_min,
     output_true,
     rk4_true,
+    TRAIN_VIABLE_STARTING_IDX,
+    TEST_VIABLE_STARTING_IDX,
 )
 
 
@@ -23,9 +26,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     """Continuous time environment for a luttuce greenhouse."""
 
     nx, nu, nd, ts, steps_per_day = get_model_details()
-    disturbance_profile = get_disturbance_profile(
-        init_day=0, days_to_grow=40
-    )  # gets re-called in reset
+    disturbance_profile: np.ndarray  # call reset to create profiles
     disturbance_profile_data = np.empty(
         (4, 0)
     )  # used for plotting the disturbance over a range of episodes
@@ -43,14 +44,14 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         days_to_grow: int,
         model_type: Literal["nonlinear", "rk4", "euler"],
         rl_cost: dict = {},
+        testing: bool = False,
     ) -> None:
         super().__init__()
-
         self.model_type = model_type
-        self.c_u = rl_cost.pop("c_u", [100, 1, 1])
-        self.c_y = rl_cost.pop("c_y", 1000)
-        self.c_dy = rl_cost.pop("c_dy", 100)
-        self.w = rl_cost.pop("w", 1e3 * np.ones((1, 4)))
+        self.c_u = rl_cost.get("c_u", [100, 1, 1])
+        self.c_y = rl_cost.get("c_y", 1000)
+        self.c_dy = rl_cost.get("c_dy", 100)
+        self.w = rl_cost.get("w", 1e3 * np.ones((1, 4)))
 
         self.days_to_grow = days_to_grow
         self.yield_step = (
@@ -72,6 +73,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             self.ts,
             {"abstol": 1e-8, "reltol": 1e-8},
         )
+        self.testing = testing
 
     def reset(
         self,
@@ -87,7 +89,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         if options is not None and "first_day_index" in options:
             first_day_index = options["first_day_index"]
         else:
-            first_day_index = 0
+            # grab the starting day's index
+            first_day_index = sample(TEST_VIABLE_STARTING_IDX if self.testing else TRAIN_VIABLE_STARTING_IDX, k=1)[0]
         self.disturbance_profile = get_disturbance_profile(
             first_day_index, days_to_grow=self.days_to_grow
         )
@@ -163,7 +166,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
 class GreenhouseAgent(Agent):
     # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: Env, episode: int, state) -> None:
+    def on_episode_start(self, env: LettuceGreenHouse, episode: int, state) -> None:
         d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
@@ -173,7 +176,7 @@ class GreenhouseAgent(Agent):
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
         return super().on_episode_start(env, episode, state)
 
-    def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
+    def on_env_step(self, env: LettuceGreenHouse, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
             :, timestep + 1 : (timestep + 1 + self.V.prediction_horizon + 1)
         ]
@@ -188,7 +191,7 @@ class GreenhouseAgent(Agent):
 # TODO request bug fix from Fillipo so that the training and evaluation can use the same indexes - at the moment it is okay because we use step counter instead
 class GreenhouseLearningAgent(LstdQLearningAgent):
     # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: Env, episode: int, state) -> None:
+    def on_episode_start(self, env: LettuceGreenHouse, episode: int, state) -> None:
         d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
@@ -197,7 +200,7 @@ class GreenhouseLearningAgent(LstdQLearningAgent):
             self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
         return super().on_episode_start(env, episode, state)
 
-    def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
+    def on_env_step(self, env: LettuceGreenHouse, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
             :,
             timestep + 1 : (timestep + 1 + self.V.prediction_horizon + 1),
@@ -212,7 +215,7 @@ class GreenhouseLearningAgent(LstdQLearningAgent):
 
 class GreenhouseSampleAgent(Agent):
     # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: Env, episode: int, state) -> None:
+    def on_episode_start(self, env: LettuceGreenHouse, episode: int, state) -> None:
         d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
         self.fixed_parameters["d"] = d_pred[:, :-1]
 
@@ -226,7 +229,7 @@ class GreenhouseSampleAgent(Agent):
             )
         return super().on_episode_start(env, episode, state)
 
-    def on_env_step(self, env: Env, episode: int, timestep: int) -> None:
+    def on_env_step(self, env: LettuceGreenHouse, episode: int, timestep: int) -> None:
         d_pred = env.disturbance_profile[
             :, env.step_counter : (env.step_counter + self.V.prediction_horizon + 1)
         ]

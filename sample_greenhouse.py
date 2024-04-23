@@ -147,7 +147,7 @@ num_episodes = 1
 
 TD = []
 
-Ns = 10
+Ns = 20
 sample_mpc = SampleBasedMpc(Ns=Ns, prediction_model="rk4")
 agent = Log(
     GreenhouseSampleAgent(sample_mpc, {}),
