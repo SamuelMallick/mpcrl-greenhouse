@@ -1,9 +1,0 @@
-log_sample_2@2024-04-11,14:30:45> validation of <MonitorEpisodes<TimeLimit<LettuceGreenHouse instance>>> started.
-log_sample_2@2024-04-11,14:30:45> episode 0 stepped at time 1.
-log_sample_2@2024-04-11,14:30:45> episode 0 stepped at time 2.
-log_sample_2@2024-04-11,14:30:46> episode 0 stepped at time 3.
-log_sample_2@2024-04-11,14:30:46> episode 0 stepped at time 4.
-log_sample_2@2024-04-11,14:30:46> episode 0 stepped at time 5.
-log_sample_2@2024-04-11,14:30:46> episode 0 stepped at time 6.
-log_sample_2@2024-04-11,14:30:46> episode 0 stepped at time 7.
-log_sample_2@2024-04-11,14:30:46> episode 0 stepped at time 8.
