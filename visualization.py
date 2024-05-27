@@ -3,7 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-from envs.model import get_y_max, get_y_min
+from greenhouse.model import get_y_max, get_y_min
 
 plt.rc("text", usetex=True)
 plt.rc("font", size=14)
