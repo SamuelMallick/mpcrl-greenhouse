@@ -1,14 +1,15 @@
+from random import sample
 from typing import Any, Literal
 
 import casadi as cs
 import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
-from gymnasium import Env
 from mpcrl import Agent, LstdQLearningAgent
-from random import sample
 
 from envs.model import (
+    TEST_VIABLE_STARTING_IDX,
+    TRAIN_VIABLE_STARTING_IDX,
     df_true,
     euler_true,
     get_disturbance_profile,
@@ -17,8 +18,6 @@ from envs.model import (
     get_y_min,
     output_true,
     rk4_true,
-    TRAIN_VIABLE_STARTING_IDX,
-    TEST_VIABLE_STARTING_IDX,
 )
 
 
@@ -90,7 +89,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             first_day_index = options["first_day_index"]
         else:
             # grab the starting day's index
-            first_day_index = sample(TEST_VIABLE_STARTING_IDX if self.testing else TRAIN_VIABLE_STARTING_IDX, k=1)[0]
+            first_day_index = sample(
+                TEST_VIABLE_STARTING_IDX if self.testing else TRAIN_VIABLE_STARTING_IDX,
+                k=1,
+            )[0]
         self.disturbance_profile = get_disturbance_profile(
             first_day_index, days_to_grow=self.days_to_grow
         )

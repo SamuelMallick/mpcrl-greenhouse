@@ -9,7 +9,7 @@ class Test:
     # simulation and training params
     test_ID = "default"
     num_days = 2
-    ep_len = 5 # num_days * 24 * 4  # 'x' days of 15 minute timesteps
+    ep_len = 5  # num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 20
 
     # mpc and model params

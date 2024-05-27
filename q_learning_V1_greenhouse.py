@@ -11,7 +11,7 @@ from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
 from mpcrl import LearnableParameter, LearnableParametersDict
-from mpcrl.wrappers.agents import Log, RecordUpdates, Evaluate
+from mpcrl.wrappers.agents import Evaluate, Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
@@ -187,7 +187,10 @@ ep_len = test.ep_len
 env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(
-            days_to_grow=test.num_days, model_type=test.base_model, rl_cost=test.rl_cost, testing=False
+            days_to_grow=test.num_days,
+            model_type=test.base_model,
+            rl_cost=test.rl_cost,
+            testing=False,
         ),
         max_episode_steps=int(ep_len),
     )
@@ -195,7 +198,10 @@ env = MonitorEpisodes(
 eval_env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(
-            days_to_grow=test.num_days, model_type=test.base_model, rl_cost=test.rl_cost, testing=True
+            days_to_grow=test.num_days,
+            model_type=test.base_model,
+            rl_cost=test.rl_cost,
+            testing=True,
         ),
         max_episode_steps=int(ep_len),
     )

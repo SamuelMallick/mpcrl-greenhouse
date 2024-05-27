@@ -1,7 +1,7 @@
 # model of lettuce greenhouse from van Henten thesis (1994)
-from typing import Literal
-from random import shuffle, seed
 from math import floor
+from random import seed, shuffle
+from typing import Literal
 
 import casadi as cs
 import numpy as np
@@ -27,7 +27,7 @@ sd = 0
 
 # disturbance profile
 d = np.load("data/disturbances.npy")
-VIABLE_STARTING_IDX = [0, 1, 3, 4, 5]   # TODO make these legit
+VIABLE_STARTING_IDX = [0, 1, 3, 4, 5]  # TODO make these legit
 shuffle(VIABLE_STARTING_IDX)
 ratio = floor(0.8 * len(VIABLE_STARTING_IDX))
 TRAIN_VIABLE_STARTING_IDX = VIABLE_STARTING_IDX[:ratio]
