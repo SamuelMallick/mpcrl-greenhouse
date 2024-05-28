@@ -1,17 +1,21 @@
 import logging
+import os
 import pickle
+import sys
 
-# import networkx as netx
 import numpy as np
 from gymnasium.wrappers import TimeLimit
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import GreenhouseAgent, LettuceGreenHouse
-from envs.model import get_control_bounds, get_model_details, output_true
-from nominal_MPC import NominalMpc
+from greenhouse.env import GreenhouseAgent, LettuceGreenHouse
+from greenhouse.model import get_control_bounds, get_model_details, output_true
 
-np.random.seed(1)
+sys.path.append(os.getcwd())
+
+from mpcs.nominal import NominalMpc
+
+np_random = np.random.default_rng(1)
 
 STORE_DATA = True
 
@@ -34,7 +38,12 @@ env = MonitorEpisodes(
 num_episodes = 1
 TD = []
 
-mpc = NominalMpc(prediction_model="rk4", correct_model=True, perturb_list=[])
+mpc = NominalMpc(
+    prediction_model="rk4",
+    correct_model=True,
+    perturb_list=[],
+    np_random=np_random,
+)
 agent = Log(
     GreenhouseAgent(mpc, {}),
     level=logging.DEBUG,
