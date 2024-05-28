@@ -7,22 +7,22 @@ from gymnasium.wrappers import TimeLimit
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import GreenhouseAgent, LettuceGreenHouse
-from envs.model import output_true
+from greenhouse.env import GreenhouseAgent, LettuceGreenHouse
+from greenhouse.model import output_true
 from mpcs.nominal import NominalMpc
-from plot_green import plot_greenhouse
+from utils.plot import plot_greenhouse
 
-np.random.seed(1)
+np_random = np.random.default_rng(1)
 
 STORE_DATA = True
 PLOT = True
 
 days = 40
-ep_len = days * 24 * 4  # x days of 15 minute timesteps
+episode_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(days_to_grow=days, model_type="nonlinear"),
-        max_episode_steps=int(ep_len),
+        max_episode_steps=int(episode_len),
     )
 )
 num_episodes = 1
@@ -66,14 +66,17 @@ else:
 
 print(f"Return = {sum(R.squeeze())}")
 
-R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
-TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
+R_eps = [sum(R[episode_len * i : episode_len * (i + 1)]) for i in range(num_episodes)]
+TD_eps = [
+    sum(TD[episode_len * i : episode_len * (i + 1)]) / episode_len
+    for i in range(num_episodes)
+]
 # generate output
 y = np.asarray([output_true(X[k, :]) for k in range(X.shape[0])]).squeeze()
 d = env.disturbance_profile
 
 if PLOT:
-    plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
+    plot_greenhouse(X, U, y, d, TD, R, num_episodes, episode_len)
 
 param_dict = {}
 if STORE_DATA:

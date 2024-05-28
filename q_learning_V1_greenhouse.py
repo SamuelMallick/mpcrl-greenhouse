@@ -9,11 +9,6 @@ import casadi as cs
 import numpy as np
 from csnlp import Nlp
 from csnlp.wrappers import Mpc
-from gymnasium.wrappers import TimeLimit
-from mpcrl import LearnableParameter, LearnableParametersDict
-from mpcrl.wrappers.agents import Evaluate, Log, RecordUpdates
-from mpcrl.wrappers.envs import MonitorEpisodes
-
 from envs.env import GreenhouseLearningAgent, LettuceGreenHouse
 from envs.model import (
     euler_learnable,
@@ -26,7 +21,12 @@ from envs.model import (
     output_true,
     rk4_learnable,
 )
-from plot_green import plot_greenhouse
+from gymnasium.wrappers import TimeLimit
+from mpcrl import LearnableParameter, LearnableParametersDict
+from mpcrl.wrappers.agents import Evaluate, Log, RecordUpdates
+from mpcrl.wrappers.envs import MonitorEpisodes
+
+from utils.plot import plot_greenhouse
 
 np.random.seed(1)
 

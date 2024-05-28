@@ -13,8 +13,8 @@ from mpcrl import WarmStartStrategy
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from envs.env import GreenhouseSampleAgent, LettuceGreenHouse
-from envs.model import (
+from greenhouse.env import GreenhouseSampleAgent, LettuceGreenHouse
+from greenhouse.model import (
     generate_parameters,
     get_control_bounds,
     get_model_details,
@@ -24,6 +24,7 @@ from envs.model import (
     output_true,
 )
 from mpcs import SampleBasedMpc
+from utils.plot import plot_greenhouse
 
 np_random = np.random.default_rng(1)
 
