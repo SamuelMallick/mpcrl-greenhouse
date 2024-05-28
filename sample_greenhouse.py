@@ -22,7 +22,7 @@ from envs.model import (
     multi_sample_rk4_step,
     output_true,
 )
-from plot_green import plot_greenhouse
+from mpcs import SampleBasedMpc
 
 np.random.seed(1)
 
@@ -37,103 +37,6 @@ c_y = np.array([1e3])  # reward on yield
 
 # generate the perturbed parameters
 generate_parameters(0.2)
-
-
-class SampleBasedMpc(Mpc[cs.SX]):
-    """Non-linear Sample Based Robust MPC for greenhouse control."""
-
-    horizon = 6 * 4  # prediction horizon
-    discount_factor = 1
-
-    def __init__(self, Ns, prediction_model: Literal["euler", "rk4"] = "rk4") -> None:
-        w = np.full((1, nx * Ns), 1e3)  # penalty on constraint violations
-        N = self.horizon
-        self.Ns = Ns
-        nlp = Nlp[cs.SX](debug=False)
-        super().__init__(nlp, N)
-
-        # state needs to be done manually as we have one state per scenario
-        x = self.nlp.variable(
-            "x",
-            (nx * Ns, self._prediction_horizon + 1),
-            lb=cs.vertcat(*[[0], [0], [-float("inf")], [0]] * Ns),
-        )[0]
-        x0 = self.nlp.parameter("x_0", (nx, 1))
-        self.nlp.constraint("x_0", x[:, 0], "==", cs.repmat(x0, Ns, 1))
-        self._states["x"] = x
-        self._initial_states["x_0"] = x0
-        u, _ = self.action("u", nu, lb=u_min, ub=u_max)
-        self.disturbance("d", nd)
-        s, _, _ = self.variable("s", (nx * Ns, N + 1), lb=0)  # slack vars
-
-        # dynamics
-        if prediction_model == "euler":
-            self.set_dynamics(
-                lambda x, u, d: multi_sample_euler_step(x, u, d, Ns), n_in=3, n_out=1
-            )
-        elif prediction_model == "rk4":
-            self.set_dynamics(
-                lambda x, u, d: multi_sample_rk4_step(x, u, d, Ns), n_in=3, n_out=1
-            )
-        else:
-            raise RuntimeError(
-                f"{prediction_model} is not a valid prediction model option."
-            )
-
-        # other constraints
-        y_min_list = [self.parameter(f"y_min_{k}", (nx * Ns, 1)) for k in range(N + 1)]
-        y_max_list = [self.parameter(f"y_max_{k}", (nx * Ns, 1)) for k in range(N + 1)]
-
-        y_0 = multi_sample_output(x[:, [0]], Ns)
-        self.constraint(f"y_min_0", y_0, ">=", y_min_list[0] - s[:, [0]])
-        self.constraint(f"y_max_0", y_0, "<=", y_max_list[0] + s[:, [0]])
-        for k in range(1, N):
-            # control change constraints
-            self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
-            self.constraint(f"du_leq_{k}", u[:, [k]] - u[:, [k - 1]], ">=", -du_lim)
-
-            # output constraints
-            y_k = multi_sample_output(x[:, [k]], Ns)
-            self.constraint(f"y_min_{k}", y_k, ">=", y_min_list[k] - s[:, [k]])
-            self.constraint(f"y_max_{k}", y_k, "<=", y_max_list[k] + s[:, [k]])
-
-        y_N = multi_sample_output(x[:, [N]], Ns)
-        self.constraint(f"y_min_{N}", y_N, ">=", y_min_list[N] + s[:, [N]])
-        self.constraint(f"y_max_{N}", y_N, "<=", y_max_list[N] + s[:, [N]])
-
-        obj = 0
-        for k in range(N):
-            for j in range(nu):
-                obj += Ns * c_u[j] * u[j, k]
-            obj += w @ s[:, [k]]
-        obj += w @ s[:, [N]]
-        for i in range(Ns):
-            y_N_i = y_N[nx * i : nx * (i + 1), :]
-            obj += -c_y * y_N_i[0]
-        self.minimize(obj)
-
-        # solver
-        opts = {
-            "expand": True,
-            "show_eval_warnings": False,
-            "warn_initial_bounds": True,
-            "print_time": False,
-            "bound_consistency": True,
-            "calc_lam_x": True,
-            "calc_lam_p": False,
-            "ipopt": {
-                "sb": "yes",
-                "print_level": 0,
-                "max_iter": 2000,
-                "print_user_options": "yes",
-                "print_options_documentation": "no",
-                "linear_solver": "ma57",  # spral
-                "nlp_scaling_method": "gradient-based",
-                "nlp_scaling_max_gradient": 10,
-            },
-        }
-        self.init_solver(opts, solver="ipopt")
-
 
 days = 40
 ep_len = days * 24 * 4  # 40 days of 15 minute timesteps

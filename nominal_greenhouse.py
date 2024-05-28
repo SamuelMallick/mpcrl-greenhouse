@@ -9,7 +9,7 @@ from mpcrl.wrappers.envs import MonitorEpisodes
 
 from envs.env import GreenhouseAgent, LettuceGreenHouse
 from envs.model import output_true
-from nominal_MPC import NominalMpc
+from mpcs.nominal import NominalMpc
 from plot_green import plot_greenhouse
 
 np.random.seed(1)
@@ -29,11 +29,14 @@ num_episodes = 1
 
 TD = []
 
-predic_mod = "euler"
-correct_mod = True
+prediction_model = "euler"
+correct_model = True
 
 mpc = NominalMpc(
-    prediction_model=predic_mod, correct_model=correct_mod, perturb_list=[]
+    prediction_model=prediction_model,
+    correct_model=correct_model,
+    perturb_list=[],
+    np_random=np_random,
 )
 # mpc = NominalMpc(prediction_model="rk4")
 agent = Log(
@@ -48,7 +51,7 @@ agent.evaluate(
     raises=False,
     env_reset_options={"first_day_index": 0},
     to_file=True,
-    log_name=f"nom_{predic_mod}_{correct_mod}",
+    log_name=f"nom_{prediction_model}_{correct_model}",
 )
 
 # extract data
