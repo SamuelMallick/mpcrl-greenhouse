@@ -9,6 +9,7 @@ import numpy as np
 from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from gymnasium.wrappers import TimeLimit
+from mpcrl import WarmStartStrategy
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
@@ -24,7 +25,7 @@ from envs.model import (
 )
 from mpcs import SampleBasedMpc
 
-np.random.seed(1)
+np_random = np.random.default_rng(1)
 
 STORE_DATA = True
 PLOT = False
@@ -50,10 +51,21 @@ num_episodes = 1
 
 TD = []
 
+multistarts = 10
 Ns = 20
-sample_mpc = SampleBasedMpc(Ns=Ns, prediction_model="rk4")
+sample_mpc = SampleBasedMpc(
+    Ns=Ns, prediction_model="rk4", multistarts=multistarts, np_random=np_random
+)
 agent = Log(
-    GreenhouseSampleAgent(sample_mpc, {}),
+    GreenhouseSampleAgent(
+        mpc=sample_mpc,
+        fixed_parameters={},
+        warmstart=WarmStartStrategy(
+            random_points=sample_mpc.random_points,
+            update_biases_for_random_points=False,
+            seed=np_random,
+        ),
+    ),
     level=logging.DEBUG,
     log_frequencies={"on_timestep_end": 1},
     to_file=True,
