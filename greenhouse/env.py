@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 from mpcrl import Agent, LstdQLearningAgent
 
-from envs.model import (
+from greenhouse.model import (
     TEST_VIABLE_STARTING_IDX,
     TRAIN_VIABLE_STARTING_IDX,
     df_true,

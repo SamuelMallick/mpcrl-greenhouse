@@ -1,13 +1,98 @@
 # model of lettuce greenhouse from van Henten thesis (1994)
+
 from math import floor
 from random import seed, shuffle
 from typing import Literal
 
 import casadi as cs
 import numpy as np
+from mpcrl.util.seeding import RngType
 
 np.random.seed(1)
 seed(1)
+
+
+class Model:
+    """Van Henten's Model of the greenhouse system. Contains the true parameters and
+    methods to simulate the dynamics."""
+
+    p_scale = np.asarray(
+        [
+            0.544,
+            2.65e-7,
+            53,
+            3.55e-9,
+            5.11e-6,
+            2.3e-4,
+            6.29e-4,
+            5.2e-5,
+            4.1,
+            4.87e-7,
+            7.5e-6,
+            8.31,
+            273.15,
+            101325,
+            0.044,
+            3e4,
+            1290,
+            6.1,
+            0.2,
+            4.1,
+            0.0036,
+            9348,
+            8314,
+            273.15,
+            17.4,
+            239,
+            17.269,
+            238.3,
+        ]
+    )
+    p_scale.flags.writeable = False
+    n_params = p_scale.size
+    p_true = np.ones(n_params, dtype=float)
+
+    @staticmethod
+    def get_true_parameters() -> np.ndarray:
+        """Gets the true parameters of the model.
+
+        Returns
+        -------
+        np.ndarray
+            The true model's parameters.
+        """
+        return Model.p_true
+
+    @staticmethod
+    def get_perturbed_parameters(
+        perturb_idx: list[int],
+        perturb_percentage: float = 0.2,
+        np_random: RngType = None,
+    ) -> np.ndarray:
+        """Gets a perturbed version of the true parameters.
+
+        Parameters
+        ----------
+        perturb_idx : list[int]
+            A list of indices of the parameters to perturb.
+        perturb_percentage : float, optional
+            The maximum percentage to perturb the parameters by, by default 0.2.
+        np_random : RngType, optional
+            The numpy random generator to use, by default None.
+
+        Returns
+        -------
+        np.ndarray
+            The perturbed parameters.
+        """
+        np_random = np.random.default_rng(np_random)
+        p_perturbed = Model.p_true.copy()
+        max_pert = Model.p_true[perturb_idx] * perturb_percentage
+        p_perturbed[perturb_idx] += np_random.uniform(-max_pert, max_pert)
+        return p_perturbed
+
+
+M = Model
 
 # model parameters
 nx = 4
@@ -28,7 +113,7 @@ sd = 0
 # disturbance profile
 d = np.load("data/disturbances.npy")
 VIABLE_STARTING_IDX = [0, 1, 3, 4, 5]  # TODO make these legit
-shuffle(VIABLE_STARTING_IDX)
+shuffle(VIABLE_STARTING_IDX)  # TODO: find alternative to shuffle that uses np_random
 ratio = floor(0.8 * len(VIABLE_STARTING_IDX))
 TRAIN_VIABLE_STARTING_IDX = VIABLE_STARTING_IDX[:ratio]
 TEST_VIABLE_STARTING_IDX = VIABLE_STARTING_IDX[ratio:]
@@ -69,43 +154,9 @@ def get_y_max(d):
         return np.array([[1e6], [1.6], [20], [70]])
 
 
-# the model parameters are multiplied by these scale factors. This allows us to normalize the parameters to all be 1
-p_scale = [
-    0.544,
-    2.65e-7,
-    53,
-    3.55e-9,
-    5.11e-6,
-    2.3e-4,
-    6.29e-4,
-    5.2e-5,
-    4.1,
-    4.87e-7,
-    7.5e-6,
-    8.31,
-    273.15,
-    101325,
-    0.044,
-    3e4,
-    1290,
-    6.1,
-    0.2,
-    4.1,
-    0.0036,
-    9348,
-    8314,
-    273.15,
-    17.4,
-    239,
-    17.269,
-    238.3,
-]
-
-p_true = [1] * len(p_scale)
-
 # lower and upper bounds for parameters to be learned
 p_bounds: dict = {}
-for i in range(len(p_true)):
+for i in range(M.get_true_parameters().size):
     p_bounds[f"p_{i}"] = [
         0.5,
         1.5,
@@ -146,10 +197,10 @@ def generate_parameters(percentage_perturb: float = 0.1):
 
 # sub-functions within dynamics
 def psi(x, d, p):
-    return (p[3] * p_scale[3]) * d[0] + (
-        -(p[4] * p_scale[4]) * x[2] ** 2
-        + (p[5] * p_scale[5]) * x[2]
-        - (p[6] * p_scale[6])
+    return (p[3] * M.p_scale[3]) * d[0] + (
+        -(p[4] * M.p_scale[4]) * x[2] ** 2
+        + (p[5] * M.p_scale[5]) * x[2]
+        - (p[6] * M.p_scale[6])
     ) * (x[1] - (p[7] * p_scale[7]))
 
 
@@ -296,7 +347,7 @@ def output_perturbed(x, perturb_list: list[int]):
 
 
 # robust sample based dynamics and output - assumed all parameters are wrong
-def multi_sample_step(x, u, d, Ns, step_type: Literal["euler", "rk4"]):
+def multi_sample_step(x, u, d, n_samples: int, step_type: Literal["euler", "rk4"]):
     if len(p_hat_list) == 0:
         raise RuntimeError(
             "P samples must be generated before using multi_sample_output."
@@ -310,7 +361,7 @@ def multi_sample_step(x, u, d, Ns, step_type: Literal["euler", "rk4"]):
         raise RuntimeError(f"{step_type} is not a valid step_type.")
 
     x_plus = cs.SX.zeros(x.shape)
-    for i in range(Ns):
+    for i in range(n_samples):
         x_i = x[nx * i : nx * (i + 1), :]  # pull out state for one sample
         x_i_plus = step(
             x_i, u, d, p_hat_list[i]
@@ -319,23 +370,13 @@ def multi_sample_step(x, u, d, Ns, step_type: Literal["euler", "rk4"]):
     return x_plus
 
 
-def multi_sample_euler_step(x, u, d, Ns):
-    """Computes a euler dynamics update for Ns copies of the state x, with a different param sample for each"""
-    return multi_sample_step(x, u, d, Ns, step_type="euler")
-
-
-def multi_sample_rk4_step(x, u, d, Ns):
-    """Computes an rk4 dynamics update for Ns copies of the state x, with a different param sample for each"""
-    return multi_sample_step(x, u, d, Ns, step_type="rk4")
-
-
-def multi_sample_output(x, Ns):
+def multi_sample_output(x: cs.SX, n_samples: int) -> cs.SX:
     if len(p_hat_list) == 0:
         raise RuntimeError(
             "P samples must be generated before using multi_sample_output."
         )
     y = cs.SX.zeros(x.shape)
-    for i in range(Ns):
+    for i in range(n_samples):
         x_i = x[nx * i : nx * (i + 1), :]
         y_i = output(x_i, p_hat_list[i])
         y[nx * i : nx * (i + 1), :] = y_i
