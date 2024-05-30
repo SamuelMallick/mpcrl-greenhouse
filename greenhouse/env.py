@@ -7,71 +7,107 @@ import numpy as np
 import numpy.typing as npt
 from mpcrl import Agent, LstdQLearningAgent
 
-from greenhouse.model import (
-    TEST_VIABLE_STARTING_IDX,
-    TRAIN_VIABLE_STARTING_IDX,
-    df_true,
-    euler_true,
-    get_disturbance_profile,
-    get_model_details,
-    get_y_max,
-    get_y_min,
-    output_true,
-    rk4_true,
-)
+from greenhouse.model import Model
 
 
 class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floating]]):
-    """Continuous time environment for a luttuce greenhouse."""
+    """A lettuce greenhouse environment"""
 
-    nx, nu, nd, ts, steps_per_day = get_model_details()
-    disturbance_profile: np.ndarray  # call reset to create profiles
-    disturbance_profile_data = np.empty(
+    nx = 4  # number of states
+    nu = 3  # number of control inputs
+    nd = 4  # number of disturbances
+    ts = 60 * 15  # time step (15 minutes) in seconds
+    steps_per_day = 24 * 4  # number of time steps per day
+
+    # disturbance data
+    disturbance_data = np.load("data/disturbances.npy")
+    VIABLE_STARTING_IDX = np.array(
+        [0]
+    )  # valid starting days of distrubance data  # TODO make these legit
+    training_percentage = 0.8  # 80% of the valid data is used for training
+    ratio = np.floor(training_percentage * len(VIABLE_STARTING_IDX))
+
+    disturbance_profiles_all_episodes = np.empty(
         (4, 0)
-    )  # used for plotting the disturbance over a range of episodes
+    )  # store all disturbances over all episodes
     step_counter = 0
-
-    # noise terms for dynamics
-    mean = np.zeros((nx, 1))
-    sd = np.array([[0], [0], [0], [0]])
-
-    # store previous weight for stage cost calculation
-    prev_weight = None
 
     def __init__(
         self,
-        days_to_grow: int,
-        model_type: Literal["nonlinear", "rk4", "euler"],
-        rl_cost: dict = {},
+        growing_days: int,
+        model_type: Literal["continuous", "rk4", "euler"],
+        cost_parameters_dict: dict = {},
+        disturbance_type: Literal["noisy", "multiple"] = "multiple",
         testing: bool = False,
     ) -> None:
+        """Initializes the environment.
+
+        Parameters
+        ----------
+        growing_days : int
+            The number of days the lettuce is grown for. Defines an episode length.
+        model_type : str
+            The type of model used for the environment.
+        cost_parameters_dict : dict
+            The cost parameters for the environment.
+        disturbance_type : str
+            The type of disturbances used. "noisy" uses one disturbance profile for every episode with noise added.
+            "multiple" uses one of a subset of deterministic disturbance profiles for each episode.
+        testing : bool
+            Whether the environment is in testing mode. Otherwise training mode.
+        """
         super().__init__()
-        self.model_type = model_type
-        self.c_u = rl_cost.get("c_u", [100, 1, 1])
-        self.c_y = rl_cost.get("c_y", 1000)
-        self.c_dy = rl_cost.get("c_dy", 100)
-        self.w = rl_cost.get("w", 1e3 * np.ones((1, 4)))
 
-        self.days_to_grow = days_to_grow
+        self.p = Model.get_true_parameters()
+
+        # define the dynamics of the environment
+        if model_type == "continuous":
+            x = cs.SX.sym("x", (self.nx, 1))
+            u = cs.SX.sym("u", (self.nu, 1))
+            d = cs.SX.sym("d", (self.nd, 1))
+            o = cs.vertcat(u, d)
+
+            x_new = lambda x, u, d: Model.df(x, u, d, self.p)
+            ode = {"x": x, "p": o, "ode": x_new}
+            integrator = cs.integrator(
+                "env_integrator",
+                "cvodes",
+                ode,
+                0,
+                self.ts,
+                {"abstol": 1e-8, "reltol": 1e-8},
+            )
+            self.dynamics = lambda x, u, d: integrator(
+                x0=x,
+                p=cs.vertcat(u, d),
+            )["xf"]
+        elif model_type == "rk4":
+            self.dynamics = lambda x, u, d: Model.rk4_step(x, u, d, self.p, self.ts)
+        elif model_type == "euler":
+            self.dynamics = lambda x, u, d: Model.euler_step(x, u, d, self.p, self.ts)
+
+        self.c_u = cost_parameters_dict.get(
+            "c_u", [100, 1, 1]
+        )  # penalty on control inputs
+        self.c_y = cost_parameters_dict.get(
+            "c_y", 1000
+        )  # reward on final lettuce yield
+        self.c_dy = cost_parameters_dict.get(
+            "c_dy", 100
+        )  # reward on step-wise lettuce yield
+        self.w = cost_parameters_dict.get(
+            "w", 1e3 * np.ones((1, 4))
+        )  # penatly on constraint violations
+
+        self.np_random.shuffle(self.VIABLE_STARTING_IDX)
+        self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[: self.ratio]
+        self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[self.ratio :]
+
         self.yield_step = (
-            self.steps_per_day * days_to_grow - 1
+            self.steps_per_day * growing_days - 1
         )  # the time step at which the yield reward is caclculated
-
-        # set-up continuous time integrator for dynamics simulation
-        x = cs.SX.sym("x", (self.nx, 1))
-        u = cs.SX.sym("u", (self.nu, 1))
-        d = cs.SX.sym("d", (self.nd, 1))
-        p = cs.vertcat(u, d)
-        x_new = df_true(x, u, d)
-        ode = {"x": x, "p": p, "ode": x_new}
-        self.integrator = cs.integrator(
-            "env_integrator",
-            "cvodes",
-            ode,
-            0,
-            self.ts,
-            {"abstol": 1e-8, "reltol": 1e-8},
-        )
+        self.growing_days = growing_days
+        self.disturbance_type = disturbance_type
         self.testing = testing
 
     def reset(
@@ -80,28 +116,31 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         seed: int | None = None,
         options: dict[str, Any] | None = None,
     ) -> tuple[npt.NDArray[np.floating], dict[str, Any]]:
-        """Resets the state of the system."""
+        """Resets the environment to its initial state.
+
+        Parameters
+        ----------
+        seed : int
+            The seed for the random number generator.
+        options : dict
+            The reset options for the environment.
+
+        Returns
+        -------
+        tuple
+            The initial state of the environment and an empty dictionary."""
         self.x = np.array(
             [[0.0035], [0.001], [15], [0.008]]
-        )  # initial condition used in the robust approach paper - 2022
+        )  # initial condition of the system
+        self.previous_weight = Model.output(self.x, self.p)[0]  # get the initial weight
 
-        if options is not None and "first_day_index" in options:
-            first_day_index = options["first_day_index"]
-        else:
-            # grab the starting day's index
-            first_day_index = sample(
-                TEST_VIABLE_STARTING_IDX if self.testing else TRAIN_VIABLE_STARTING_IDX,
-                k=1,
-            )[0]
-        self.disturbance_profile = get_disturbance_profile(
-            first_day_index, days_to_grow=self.days_to_grow
-        )
-
-        # add in this episodes disturbance to the data
-        self.disturbance_profile_data = np.hstack(
+        # reset the disturbance profile
+        self.disturbance_profile = self.generate_disturbance_profile()
+        # add in this episodes disturbance to the data, adding only the episode length of data
+        self.disturbance_profiles_all_episodes = np.hstack(
             (
-                self.disturbance_profile_data,
-                self.disturbance_profile[:, : self.steps_per_day * self.days_to_grow],
+                self.disturbance_profiles_all_episodes,
+                self.disturbance_profile[:, : self.growing_days * self.steps_per_day],
             )
         )
 
@@ -112,10 +151,23 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     def get_stage_cost(
         self, state: npt.NDArray[np.floating], action: npt.NDArray[np.floating]
     ) -> float:
+        """Calculates the stage cost of the environment.
+
+        Parameters
+        ----------
+        state : np.ndarray
+            The current state of the environment.
+        action : np.ndarray
+            The action taken in the environment.
+
+        Returns
+        -------
+        float
+            The stage cost of the environment."""
         reward = 0.0
-        y = output_true(state)  # get output from current state
-        y_max = get_y_max(self.disturbance_profile[:, [self.step_counter]])
-        y_min = get_y_min(self.disturbance_profile[:, [self.step_counter]])
+        y = Model.output(state, self.p)  # current output
+        y_max = Model.get_output_max(self.disturbance_profile[:, [self.step_counter]])
+        y_min = Model.get_output_min(self.disturbance_profile[:, [self.step_counter]])
 
         # penalize control inputs
         for i in range(self.nu):
@@ -123,10 +175,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
         # reward step change in weight
         if self.step_counter > 0:
-            reward -= self.c_dy * (y[0] - self.prev_weight)
-        self.prev_weight = y[0]
+            reward -= self.c_dy * (y[0] - self.previous_weight)
+        self.previous_weight = y[0]
 
-        # penalize constraint viols
+        # penalize constraint violations
         reward += self.w @ np.maximum(0, y_min - y)
         reward += self.w @ np.maximum(0, y - y_max)
 
@@ -139,110 +191,84 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     def step(
         self, action: cs.DM
     ) -> tuple[npt.NDArray[np.floating], float, bool, bool, dict[str, Any]]:
-        """Steps the system."""
+        """Steps the greenhouse environment.
+
+        Parameters
+        ----------
+        action : cs.DM
+            The action taken in the environment.
+
+        Returns
+        -------
+        tuple
+            The new state of the environment, the reward, whether the episode is truncated, whether the episode is terminated, and an empty dictionary.
+        """
         r = float(self.get_stage_cost(self.x, action))
-
-        if self.model_type == "euler":
-            x_new = euler_true(
-                self.x, action, self.disturbance_profile[:, [self.step_counter]]
-            )
-        elif self.model_type == "rk4":
-            x_new = rk4_true(
-                self.x, action, self.disturbance_profile[:, [self.step_counter]]
-            )
-        elif self.model_type == "nonlinear":
-            x_new = self.integrator(
-                x0=self.x,
-                p=cs.vertcat(action, self.disturbance_profile[:, [self.step_counter]]),
-            )["xf"]
-        else:
-            raise RuntimeError(f"{self.model_type} is not a valid model option.")
-
-        # to add uncertainty to the dynamics
-        # self.np_random.normal(self.mean, self.sd, (self.nx, 1))
-
-        self.x = x_new  # + model_uncertainty
+        self.x = self.dynamics(
+            self.x, action, self.disturbance_profile[:, [self.step_counter]]
+        )
+        truncated = self.step_counter == self.yield_step
         self.step_counter += 1
-        return x_new, r, False, False, {}
+        return self.x, r, truncated, False, {}
+    
+    def get_current_disturbance(self, length: int) -> npt.NDArray[np.floating]:
+        """Returns the disturbance profile for a certain length starting from the current time step.
+        
+        Parameters
+        ----------
+        length : int
+            The length of the disturbance profile.
+            
+        Returns
+        -------
+        np.ndarray
+            The disturbance profile for the given length."""
+        return self.disturbance_profile[:, self.step_counter : self.step_counter + length]
 
+    def generate_disturbance_profile(self) -> npt.NDArray[np.floating]:
+        """Returns the disturbance profile.
 
-class GreenhouseAgent(Agent):
-    # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: LettuceGreenHouse, episode: int, state) -> None:
-        d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
-        self.fixed_parameters["d"] = d_pred[:, :-1]
+        Returns
+        -------
+        np.ndarray
+            The disturbance profile."""
+        if self.disturbance_type == "noisy":
+            raise NotImplementedError("This method is not implemented.")
+        elif self.disturbance_type == "multiple":
+            initial_day = self.np_random.choice(
+                self.TEST_VIABLE_STARTING_IDX
+                if self.testing
+                else self.TRAIN_VIABLE_STARTING_IDX
+            )[
+                0
+            ]  # TODO: confirm choice works how I think it does
+            return self.pick_disturbance(
+                initial_day, self.growing_days + 1
+            )  # one extra day in the disturbance profile for the MPC prediction horizon
+        else:
+            raise ValueError("Invalid disturbance type.")
 
-        # then we use the first entry of the predicted disturbance to determine y bounds
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
-            self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_episode_start(env, episode, state)
+    def pick_disturbance(
+        self, initial_day: int, num_days: int
+    ) -> npt.NDArray[np.floating]:
+        """Returns the disturbance profile of a certain length, starting from a given day.
 
-    def on_env_step(self, env: LettuceGreenHouse, episode: int, timestep: int) -> None:
-        d_pred = env.disturbance_profile[
-            :, timestep + 1 : (timestep + 1 + self.V.prediction_horizon + 1)
-        ]
-        self.fixed_parameters["d"] = d_pred[:, :-1]
+        Parameters
+        ----------
+        initial_day : int
+            The day to start the disturbance profile from.
+        num_days : int
+            The number of days in the disturbance profile.
 
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
-            self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_env_step(env, episode, timestep)
-
-
-# TODO request bug fix from Fillipo so that the training and evaluation can use the same indexes - at the moment it is okay because we use step counter instead
-class GreenhouseLearningAgent(LstdQLearningAgent):
-    # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: LettuceGreenHouse, episode: int, state) -> None:
-        d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
-        self.fixed_parameters["d"] = d_pred[:, :-1]
-
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
-            self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_episode_start(env, episode, state)
-
-    def on_env_step(self, env: LettuceGreenHouse, episode: int, timestep: int) -> None:
-        d_pred = env.disturbance_profile[
-            :,
-            timestep + 1 : (timestep + 1 + self.V.prediction_horizon + 1),
-        ]
-        self.fixed_parameters["d"] = d_pred[:, :-1]
-
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = get_y_min(d_pred[:, [k]])
-            self.fixed_parameters[f"y_max_{k}"] = get_y_max(d_pred[:, [k]])
-        return super().on_env_step(env, episode, timestep)
-
-
-class GreenhouseSampleAgent(Agent):
-    # set the disturbance at start of episode and each new timestep
-    def on_episode_start(self, env: LettuceGreenHouse, episode: int, state) -> None:
-        d_pred = env.disturbance_profile[:, : self.V.prediction_horizon + 1]
-        self.fixed_parameters["d"] = d_pred[:, :-1]
-
-        Ns = self.V.Ns
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = cs.vertcat(
-                *[get_y_min(d_pred[:, [k]])] * Ns
+        Returns
+        -------
+        np.ndarray
+            The disturbance profile."""
+        # disturbance data has 324 days
+        if initial_day + num_days > 324:
+            raise ValueError(
+                "The requested initial day and length of the disturbance profile exceeds the data available."
             )
-            self.fixed_parameters[f"y_max_{k}"] = cs.vertcat(
-                *[get_y_max(d_pred[:, [k]])] * Ns
-            )
-        return super().on_episode_start(env, episode, state)
-
-    def on_env_step(self, env: LettuceGreenHouse, episode: int, timestep: int) -> None:
-        d_pred = env.disturbance_profile[
-            :, env.step_counter : (env.step_counter + self.V.prediction_horizon + 1)
-        ]
-        self.fixed_parameters["d"] = d_pred[:, :-1]
-
-        Ns = self.V.Ns
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = cs.vertcat(
-                *[get_y_min(d_pred[:, [k]])] * Ns
-            )
-            self.fixed_parameters[f"y_max_{k}"] = cs.vertcat(
-                *[get_y_max(d_pred[:, [k]])] * Ns
-            )
-        return super().on_env_step(env, episode, timestep)
+        idx1 = initial_day * self.steps_per_day
+        idx2 = (initial_day + num_days) * self.steps_per_day
+        return self.disturbance_data[:, idx1:idx2]
