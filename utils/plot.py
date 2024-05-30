@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from greenhouse.model import get_control_bounds, get_model_details, get_y_max, get_y_min
+from greenhouse.env import LettuceGreenHouse
+from greenhouse.model import Model
 
-nx, nu, nd, ts, steps_per_day = get_model_details()
-u_min, u_max, du_lim = get_control_bounds()
+nx = LettuceGreenHouse.nx
+u_min, u_max = Model.get_u_min(), Model.get_u_max()
 
 
 def plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len):
@@ -18,8 +19,8 @@ def plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len):
     y_min = np.zeros((nx, num_episodes * ep_len))
     y_max = np.zeros((nx, num_episodes * ep_len))
     for t in range(num_episodes * ep_len):
-        y_min[:, [t]] = get_y_min(d[:, [t]])
-        y_max[:, [t]] = get_y_max(d[:, [t]])
+        y_min[:, [t]] = Model.get_output_min(d[:, [t]])
+        y_max[:, [t]] = Model.get_output_max(d[:, [t]])
 
     _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
     for i in range(4):

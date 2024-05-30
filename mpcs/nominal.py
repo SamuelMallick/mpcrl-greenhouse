@@ -1,41 +1,58 @@
 from typing import Literal
 
 import casadi as cs
-import numpy as np
 from csnlp import Nlp
 from csnlp.wrappers import Mpc
 from mpcrl.util.seeding import RngType
 
-from greenhouse.model import (
-    Model,
-    euler_step,
-    get_control_bounds,
-    get_model_details,
-    multi_sample_output,
-    multi_sample_step,
-    output,
-    rk4_step,
-)
+from greenhouse.env import LettuceGreenHouse
+from greenhouse.model import Model
 
 
 class NominalMpc(Mpc[cs.SX]):
-    """Non-linear MPC for greenhouse control."""
+    """Non-linear nominal MPC for greenhouse control."""
 
     def __init__(
         self,
-        greenhouse_model: Model,
+        greenhouse_env: LettuceGreenHouse,
         prediction_horizon: int = 6 * 4,
+        cost_parameters_dict: dict = {},
         prediction_model: Literal["euler", "rk4"] = "rk4",
         correct_model: bool = True,
         perturb_list: list[int] | None = None,
         np_random: RngType = None,
     ) -> None:
-        # define some constants
-        nx, nu, nd, _, _ = get_model_details()
-        u_min, u_max, du_lim = get_control_bounds()
-        w = np.full((1, nx), 1e3)  # penalty on constraint violations
-        c_u = np.array([10, 1, 1])  # penalty on each control signal
-        c_y = np.array([1e3])  # reward on yield
+        """Initialize the nominal MPC for greenhouse control.
+
+        Parameters
+        ----------
+        greenhouse_env : LettuceGreenHouse
+            The greenhouse environment.
+        prediction_horizon : int, optional
+            The prediction horizon, by default 6 * 4.
+        cost_parameters_dict : dict, optional
+            The cost parameters dictionary, by default {} and
+            the cost parameters of the environment are used.
+        prediction_model : Literal["euler", "rk4"], optional
+            The prediction model to use, by default "rk4".
+        correct_model : bool, optional
+            Whether to use the correct model, by default True.
+        perturb_list : list[int] | None, optional
+            The list of parameters to perturb, by default None.
+            If correct_model is False and this is None, all parameters are perturbed.
+        """
+        nx, nu, nd, ts = (
+            greenhouse_env.nx,
+            greenhouse_env.nu,
+            greenhouse_env.nd,
+            greenhouse_env.ts,
+        )
+        u_min, u_max, du_lim = Model.get_u_min(), Model.get_u_max(), Model.get_du_lim()
+        if not cost_parameters_dict:
+            cost_parameters_dict = greenhouse_env.get_cost_parameters()
+        c_u = cost_parameters_dict["c_u"]  # penalty on each control signal
+        c_y = cost_parameters_dict["c_y"]  # reward on yield
+        w = cost_parameters_dict["w"]  # penalty on constraint violations
 
         # initialize base mpc
         nlp = Nlp[cs.SX](debug=False)
@@ -50,19 +67,17 @@ class NominalMpc(Mpc[cs.SX]):
 
         # get either true or perturbed parameters
         if correct_model:
-            mdl_params = greenhouse_model.get_true_parameters()
+            p = Model.get_true_parameters()
         else:
             if perturb_list is None:
-                perturb_list = list(range(greenhouse_model.n_params))
-            mdl_params = greenhouse_model.get_perturbed_parameters(
-                perturb_list, np_random=np_random
-            )
+                perturb_list = list(range(Model.n_params))
+            p = Model.get_perturbed_parameters(perturb_list, np_random=np_random)
 
         # dynamics
         if prediction_model == "euler":
-            model = lambda x, u, d: euler_step(x, u, d, mdl_params)
+            model = lambda x, u, d: Model.euler_step(x, u, d, p, ts)
         else:  # if prediction_model == "rk4"
-            model = lambda x, u, d: rk4_step(x, u, d, mdl_params)
+            model = lambda x, u, d: Model.rk4_step(x, u, d, p, ts)
         self.set_dynamics(lambda x, u, d: model(x, u, d), n_in=3, n_out=1)
 
         # other constraints
@@ -70,14 +85,14 @@ class NominalMpc(Mpc[cs.SX]):
             # output constraints
             y_min_k = self.parameter(f"y_min_{k}", (nx, 1))
             y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
-            y_k = output(x[:, k], mdl_params)
+            y_k = Model.output(x[:, k], p)
             self.constraint(f"y_min_{k}", y_k, ">=", y_min_k - s[:, k])
             self.constraint(f"y_max_{k}", y_k, "<=", y_max_k + s[:, k])
 
-            if 1 < k < N:
-                # control change constraints
-                self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
-                self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
+        for k in range(1, N):
+            # control variation constraints
+            self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
+            self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
 
         # objective
         obj = 0
@@ -89,7 +104,7 @@ class NominalMpc(Mpc[cs.SX]):
             obj += w @ s[:, [k]]
         obj += w @ s[:, [N]]
         # yield terminal reward
-        y_N = output(x[:, N], mdl_params)
+        y_N = Model.output(x[:, N], p)
         obj += -c_y * y_N[0]
         self.minimize(obj)
 

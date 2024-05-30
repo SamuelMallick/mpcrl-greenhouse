@@ -1,11 +1,9 @@
-from random import sample
 from typing import Any, Literal
 
 import casadi as cs
 import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
-from mpcrl import Agent, LstdQLearningAgent
 
 from greenhouse.model import Model
 
@@ -16,7 +14,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     nx = 4  # number of states
     nu = 3  # number of control inputs
     nd = 4  # number of disturbances
-    ts = 60 * 15  # time step (15 minutes) in seconds
+    ts = 60.0 * 15.0  # time step (15 minutes) in seconds
     steps_per_day = 24 * 4  # number of time steps per day
 
     # disturbance data
@@ -25,7 +23,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         [0]
     )  # valid starting days of distrubance data  # TODO make these legit
     training_percentage = 0.8  # 80% of the valid data is used for training
-    ratio = np.floor(training_percentage * len(VIABLE_STARTING_IDX))
+    split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
 
     disturbance_profiles_all_episodes = np.empty(
         (4, 0)
@@ -62,25 +60,22 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
         # define the dynamics of the environment
         if model_type == "continuous":
-            x = cs.SX.sym("x", (self.nx, 1))
-            u = cs.SX.sym("u", (self.nu, 1))
-            d = cs.SX.sym("d", (self.nd, 1))
+            x = cs.MX.sym("x", (self.nx, 1))
+            u = cs.MX.sym("u", (self.nu, 1))
+            d = cs.MX.sym("d", (self.nd, 1))
             o = cs.vertcat(u, d)
 
-            x_new = lambda x, u, d: Model.df(x, u, d, self.p)
-            ode = {"x": x, "p": o, "ode": x_new}
+            ode = {"x": x, "p": o, "ode": Model.df(x, u, d, self.p)}
             integrator = cs.integrator(
                 "env_integrator",
                 "cvodes",
                 ode,
-                0,
+                0.0,
                 self.ts,
                 {"abstol": 1e-8, "reltol": 1e-8},
             )
-            self.dynamics = lambda x, u, d: integrator(
-                x0=x,
-                p=cs.vertcat(u, d),
-            )["xf"]
+            xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
+            self.dynamics = cs.Function("dynamics", [x, u, d], [xf])
         elif model_type == "rk4":
             self.dynamics = lambda x, u, d: Model.rk4_step(x, u, d, self.p, self.ts)
         elif model_type == "euler":
@@ -99,9 +94,13 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             "w", 1e3 * np.ones((1, 4))
         )  # penatly on constraint violations
 
-        self.np_random.shuffle(self.VIABLE_STARTING_IDX)
-        self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[: self.ratio]
-        self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[self.ratio :]
+        if len(self.VIABLE_STARTING_IDX) == 1:
+            self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+            self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+        else:
+            self.np_random.shuffle(self.VIABLE_STARTING_IDX)
+            self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[: self.split_indx]
+            self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[self.split_indx :]
 
         self.yield_step = (
             self.steps_per_day * growing_days - 1
@@ -210,20 +209,22 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
         return self.x, r, truncated, False, {}
-    
+
     def get_current_disturbance(self, length: int) -> npt.NDArray[np.floating]:
         """Returns the disturbance profile for a certain length starting from the current time step.
-        
+
         Parameters
         ----------
         length : int
             The length of the disturbance profile.
-            
+
         Returns
         -------
         np.ndarray
             The disturbance profile for the given length."""
-        return self.disturbance_profile[:, self.step_counter : self.step_counter + length]
+        return self.disturbance_profile[
+            :, self.step_counter : self.step_counter + length
+        ]
 
     def generate_disturbance_profile(self) -> npt.NDArray[np.floating]:
         """Returns the disturbance profile.
@@ -239,9 +240,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 self.TEST_VIABLE_STARTING_IDX
                 if self.testing
                 else self.TRAIN_VIABLE_STARTING_IDX
-            )[
-                0
-            ]  # TODO: confirm choice works how I think it does
+            )  # TODO: confirm choice works how I think it does
             return self.pick_disturbance(
                 initial_day, self.growing_days + 1
             )  # one extra day in the disturbance profile for the MPC prediction horizon
@@ -272,3 +271,17 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         idx1 = initial_day * self.steps_per_day
         idx2 = (initial_day + num_days) * self.steps_per_day
         return self.disturbance_data[:, idx1:idx2]
+
+    def get_cost_parameters(self) -> dict:
+        """Returns the cost parameters of the environment.
+
+        Returns
+        -------
+        dict
+            The cost parameters of the environment."""
+        return {
+            "c_u": self.c_u,
+            "c_y": self.c_y,
+            "c_dy": self.c_dy,
+            "w": self.w,
+        }
