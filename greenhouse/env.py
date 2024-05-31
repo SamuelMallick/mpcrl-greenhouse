@@ -25,9 +25,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     training_percentage = 0.8  # 80% of the valid data is used for training
     split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
 
-    disturbance_profiles_all_episodes = np.empty(
-        (4, 0)
-    )  # store all disturbances over all episodes
+    disturbance_profiles_all_episodes: list[
+        np.ndarray
+    ] = []  # store all disturbances over all episodes
     step_counter = 0
 
     def __init__(
@@ -82,16 +82,16 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             self.dynamics = lambda x, u, d: Model.euler_step(x, u, d, self.p, self.ts)
 
         self.c_u = cost_parameters_dict.get(
-            "c_u", [100, 1, 1]
+            "c_u", np.array([100, 1, 1])
         )  # penalty on control inputs
         self.c_y = cost_parameters_dict.get(
-            "c_y", 1000
+            "c_y", 1000.0
         )  # reward on final lettuce yield
         self.c_dy = cost_parameters_dict.get(
-            "c_dy", 100
+            "c_dy", 100.0
         )  # reward on step-wise lettuce yield
         self.w = cost_parameters_dict.get(
-            "w", 1e3 * np.ones((1, 4))
+            "w", 1e3 * np.ones(4)
         )  # penatly on constraint violations
 
         if len(self.VIABLE_STARTING_IDX) == 1:
@@ -128,23 +128,20 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         -------
         tuple
             The initial state of the environment and an empty dictionary."""
-        self.x = np.array(
-            [[0.0035], [0.001], [15], [0.008]]
-        )  # initial condition of the system
-        self.previous_weight = Model.output(self.x, self.p)[0]  # get the initial weight
+        super().reset(seed=seed, options=options)
+        self.x = np.array([0.0035, 0.001, 15, 0.008])  # initial condition of the system
+        self.previous_lettuce_yield = Model.output(self.x, self.p)[
+            0
+        ]  # get the initial weight (first element of output)
 
         # reset the disturbance profile
         self.disturbance_profile = self.generate_disturbance_profile()
         # add in this episodes disturbance to the data, adding only the episode length of data
-        self.disturbance_profiles_all_episodes = np.hstack(
-            (
-                self.disturbance_profiles_all_episodes,
-                self.disturbance_profile[:, : self.growing_days * self.steps_per_day],
-            )
-        )
+        self.disturbance_profiles_all_episodes.append(
+            self.disturbance_profile[:, : self.growing_days * self.steps_per_day]
+        )  # only append growing days worth of data
 
         self.step_counter = 0
-        super().reset(seed=seed, options=options)
         return self.x, {}
 
     def get_stage_cost(
@@ -163,29 +160,26 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         -------
         float
             The stage cost of the environment."""
-        reward = 0.0
+        cost = 0.0
         y = Model.output(state, self.p)  # current output
-        y_max = Model.get_output_max(self.disturbance_profile[:, [self.step_counter]])
-        y_min = Model.get_output_min(self.disturbance_profile[:, [self.step_counter]])
+        y_max = Model.get_output_max(self.disturbance_profile[:, self.step_counter])
+        y_min = Model.get_output_min(self.disturbance_profile[:, self.step_counter])
 
         # penalize control inputs
-        for i in range(self.nu):
-            reward += self.c_u[i] * action[i]
+        cost += np.dot(self.c_u, action).item()
 
-        # reward step change in weight
-        if self.step_counter > 0:
-            reward -= self.c_dy * (y[0] - self.previous_weight)
-        self.previous_weight = y[0]
+        # cost step change in lettuce yield
+        cost -= self.c_dy * (y[0] - self.previous_lettuce_yield)
 
         # penalize constraint violations
-        reward += self.w @ np.maximum(0, y_min - y)
-        reward += self.w @ np.maximum(0, y - y_max)
+        cost += np.dot(self.w, np.maximum(0, y_min - y)).item()
+        cost += np.dot(self.w, np.maximum(0, y - y_max)).item()
 
         # reward final yield
         if self.step_counter == self.yield_step:
-            reward -= self.c_y * y[0]
+            cost -= self.c_y * y[0]
 
-        return reward
+        return cost
 
     def step(
         self, action: cs.DM
@@ -202,9 +196,15 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         tuple
             The new state of the environment, the reward, whether the episode is truncated, whether the episode is terminated, and an empty dictionary.
         """
+        action = np.asarray(action.elements())
         r = float(self.get_stage_cost(self.x, action))
-        self.x = self.dynamics(
-            self.x, action, self.disturbance_profile[:, [self.step_counter]]
+        self.previous_lettuce_yield = Model.output(self.x, self.p)[
+            0
+        ]  # update the previous lettuce yield
+        self.x = np.asarray(
+            self.dynamics(
+                self.x, action, self.disturbance_profile[:, self.step_counter]
+            ).elements()
         )
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
@@ -240,7 +240,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 self.TEST_VIABLE_STARTING_IDX
                 if self.testing
                 else self.TRAIN_VIABLE_STARTING_IDX
-            )  # TODO: confirm choice works how I think it does
+            )
             return self.pick_disturbance(
                 initial_day, self.growing_days + 1
             )  # one extra day in the disturbance profile for the MPC prediction horizon

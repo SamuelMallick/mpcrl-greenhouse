@@ -10,7 +10,6 @@ from mpcrl.wrappers.envs import MonitorEpisodes
 
 from agents.greenhouse_agent import GreenhouseAgent
 from greenhouse.env import LettuceGreenHouse
-from greenhouse.model import Model
 from mpcs.nominal import NominalMpc
 from utils.plot import plot_greenhouse
 
@@ -60,31 +59,17 @@ agent.evaluate(
 )
 
 # extract data
-if len(env.observations) > 0:
-    X = np.hstack([env.observations[i].squeeze().T for i in range(num_episodes)]).T
-    U = np.hstack([env.actions[i].squeeze().T for i in range(num_episodes)]).T
-    R = np.hstack([env.rewards[i].squeeze().T for i in range(num_episodes)]).T
-else:
-    X = np.squeeze(env.ep_observations)
-    U = np.squeeze(env.ep_actions)
-    R = np.squeeze(env.ep_rewards)
-
-print(f"Return = {sum(R.squeeze())}")
-
-TD: list[float] = []  # TD error not generated in this script
-R_eps = [sum(R[episode_len * i : episode_len * (i + 1)]) for i in range(num_episodes)]
-TD_eps = [
-    sum(TD[episode_len * i : episode_len * (i + 1)]) / episode_len
-    for i in range(num_episodes)
-]
+X = np.asarray(env.observations)
+U = np.asarray(env.actions).squeeze(-1)
+R = np.asarray(env.rewards)
+d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
 # generate outputs
-y = np.asarray(
-    [Model.output(X[k, :], Model.get_true_parameters()) for k in range(X.shape[0])]
-).squeeze()
-d = env.disturbance_profiles_all_episodes
+
+
+print(f"Return = {R.sum(axis=1)}")
 
 if PLOT:
-    plot_greenhouse(X, U, y, d, TD, R, num_episodes, episode_len)
+    plot_greenhouse(X, U, d, R, None)
 
 param_dict: dict = {}
 identifier = f"nominal_greenhouse_{prediction_model}_{correct_model}"

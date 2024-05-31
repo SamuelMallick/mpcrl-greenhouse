@@ -45,6 +45,7 @@ class Model:
     p_scale.flags.writeable = False
     n_params = p_scale.size
     p_true = np.ones(n_params, dtype=float)
+    p_true.flags.writeable = False
 
     @staticmethod
     def get_true_parameters() -> np.ndarray:
@@ -82,9 +83,7 @@ class Model:
         np_random = np.random.default_rng(np_random)
         p_perturbed = Model.p_true.copy()
         max_pert = Model.p_true[perturb_idx] * perturb_percentage
-        p_perturbed[perturb_idx] += np_random.uniform(
-            -max_pert, max_pert
-        )  # TODO Does this work?
+        p_perturbed[perturb_idx] += np_random.uniform(-max_pert, max_pert)
         return p_perturbed
 
     @staticmethod
@@ -121,9 +120,9 @@ class Model:
         if d.shape[0] != 4:
             raise ValueError("Disturbance vector must have 4 elements.")
         if d[0] < 10:
-            return np.array([[0], [0], [10], [0]])
+            return np.array([0, 0, 10, 0])
         else:
-            return np.array([[0], [0], [15], [0]])
+            return np.array([0, 0, 15, 0])
 
     @staticmethod
     def get_output_max(d: np.ndarray) -> np.ndarray:
@@ -141,9 +140,9 @@ class Model:
         if d.shape[0] != 4:
             raise ValueError("Disturbance vector must have 4 elements.")
         if d[0] < 10:
-            return np.array([[1e6], [1.6], [15], [70]])  # 1e6 replaces infinity
+            return np.array([1e6, 1.6, 15, 70])  # 1e6 replaces infinity
         else:
-            return np.array([[1e6], [1.6], [20], [70]])
+            return np.array([1e6, 1.6, 20, 70])
 
     @staticmethod
     def get_u_min() -> np.ndarray:
@@ -154,7 +153,7 @@ class Model:
         np.ndarray
             The minimum input values.
         """
-        return np.zeros((3, 1))
+        return np.zeros((3,))
 
     @staticmethod
     def get_u_max() -> np.ndarray:
@@ -165,7 +164,7 @@ class Model:
         np.ndarray
             The maximum input values.
         """
-        return np.array([[1.2], [7.5], [150]])
+        return np.array([1.2, 7.5, 150])
 
     @staticmethod
     def get_du_lim() -> np.ndarray:
@@ -179,23 +178,24 @@ class Model:
         return 0.1 * Model.get_u_max()
 
     # sub-functions within dynamics
-    # TODO: add in type option for SX or MX
     @staticmethod
-    def psi(x: np.ndarray, d: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def psi(
+        x: np.ndarray | cs.SX, d: np.ndarray | cs.SX, p: np.ndarray | cs.SX
+    ) -> np.ndarray | cs.SX:
         """Calculates the value of psi(x, d, p).
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The value of psi(x, d, p).
         """
         return (p[3] * M.p_scale[3]) * d[0] + (
@@ -205,21 +205,23 @@ class Model:
         ) * (x[1] - (p[7] * M.p_scale[7]))
 
     @staticmethod
-    def phi_phot_c(x: np.ndarray, d: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def phi_phot_c(
+        x: np.ndarray | cs.SX, d: np.ndarray | cs.SX, p: np.ndarray | cs.SX
+    ) -> np.ndarray | cs.SX:
         """Calculates the value of phi_phot_c(x, d, p).
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The value of phi_phot_c(x, d, p).
         """
         return (
@@ -238,66 +240,74 @@ class Model:
 
     @staticmethod
     def phi_vent_c(
-        x: np.ndarray, u: np.ndarray, d: np.ndarray, p: np.ndarray
-    ) -> np.ndarray:
+        x: np.ndarray | cs.SX,
+        u: np.ndarray | cs.SX,
+        d: np.ndarray | cs.SX,
+        p: np.ndarray | cs.SX,
+    ) -> np.ndarray | cs.SX:
         """Calculates the value of phi_vent_c(x, u, d, p).
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        u : np.ndarray
+        u : np.ndarray | cs.SX
             The input vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The value of phi_vent_c(x, u, d, p).
         """
         return (u[1] * 1e-3 + (p[10] * M.p_scale[10])) * (x[1] - d[1])
 
     @staticmethod
     def phi_vent_h(
-        x: np.ndarray, u: np.ndarray, d: np.ndarray, p: np.ndarray
-    ) -> np.ndarray:
+        x: np.ndarray | cs.SX,
+        u: np.ndarray | cs.SX,
+        d: np.ndarray | cs.SX,
+        p: np.ndarray | cs.SX,
+    ) -> np.ndarray | cs.SX:
         """Calculates the value of phi_vent_h(x, u, d, p).
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        u : np.ndarray
+        u : np.ndarray | cs.SX
             The input vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The value of phi_vent_h(x, u, d, p).
         """
         return (u[1] * 1e-3 + (p[10] * M.p_scale[10])) * (x[3] - d[3])
 
     @staticmethod
-    def phi_trasnp_h(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def phi_trasnp_h(
+        x: np.ndarray | cs.SX, p: np.ndarray | cs.SX
+    ) -> np.ndarray | cs.SX:
         """Calculates the value of phi_trasnp_h(x, p).
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The value of phi_trasnp_h(x, p).
         """
         return (
@@ -319,23 +329,28 @@ class Model:
         )
 
     @staticmethod
-    def df(x: np.ndarray, u: np.ndarray, d: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def df(
+        x: np.ndarray | cs.SX,
+        u: np.ndarray | cs.SX,
+        d: np.ndarray | cs.SX,
+        p: np.ndarray | cs.SX,
+    ) -> np.ndarray | cs.SX:
         """Get continuous differential equation for state dynamics.
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        u : np.ndarray
+        u : np.ndarray | cs.SX
             The input vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The continuous differential equation for the state dynamics.
         """
         dx1 = (p[0] * M.p_scale[0]) * M.phi_phot_c(x, d, p) - (p[1] * M.p_scale[1]) * x[
@@ -356,12 +371,12 @@ class Model:
         dx4 = (p[19] / (M.p_scale[19])) * (
             M.phi_trasnp_h(x, p) - M.phi_vent_h(x, u, d, p)
         )
-        return cs.vertcat(
-            dx1, dx2, dx3, dx4
-        )  # TODO is this always okay using cs.vertcat? What if we have numpy arrays?
+        if isinstance(x, (cs.SX, cs.MX, cs.DM)):
+            return cs.vertcat(dx1, dx2, dx3, dx4)
+        return np.concatenate((dx1, dx2, dx3, dx4), axis=0)
 
     @staticmethod
-    def output(x: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def output(x: np.ndarray | cs.SX, p: np.ndarray | cs.SX) -> np.ndarray | cs.SX:
         """Output function of state y = output(x).
 
         Parameters
@@ -395,14 +410,18 @@ class Model:
                 )
             )
         ) * x[3]
-        return cs.vertcat(
-            y1, y2, y3, y4
-        )  # TODO is this always okay using cs.vertcat? What if we have numpy arrays?
+        if isinstance(x, (cs.SX, cs.MX, cs.DM)):
+            return cs.vertcat(y1, y2, y3, y4)
+        return np.array([y1, y2, y3, y4])
 
     @staticmethod
     def euler_step(
-        x: np.ndarray, u: np.ndarray, d: np.ndarray, p: np.ndarray, ts: float
-    ) -> np.ndarray:
+        x: np.ndarray | cs.SX,
+        u: np.ndarray | cs.SX,
+        d: np.ndarray | cs.SX,
+        p: np.ndarray | cs.SX,
+        ts: float,
+    ) -> np.ndarray | cs.SX:
         """Get discrete euler approximation for state update.
 
         Parameters
@@ -426,8 +445,12 @@ class Model:
 
     @staticmethod
     def rk4_step(
-        x: np.ndarray, u: np.ndarray, d: np.ndarray, p: np.ndarray, ts: float
-    ) -> np.ndarray:
+        x: np.ndarray | cs.SX,
+        u: np.ndarray,
+        d: np.ndarray | cs.SX,
+        p: np.ndarray | cs.SX,
+        ts: float,
+    ) -> np.ndarray | cs.SX:
         """Get discrete runge-kutter-4 approximation for state update.
 
         Parameters

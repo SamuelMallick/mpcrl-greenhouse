@@ -61,7 +61,7 @@ class NominalMpc(Mpc[cs.SX]):
 
         # variables (state, action, dist, slack)
         x, _ = self.state("x", nx)
-        u, _ = self.action("u", nu, lb=u_min, ub=u_max)
+        u, _ = self.action("u", nu, lb=u_min.reshape(-1, 1), ub=u_max.reshape(-1, 1))
         self.disturbance("d", nd)
         s, _, _ = self.variable("s", (nx, N + 1), lb=0)  # slack vars
 
@@ -101,8 +101,8 @@ class NominalMpc(Mpc[cs.SX]):
             for j in range(nu):
                 obj += c_u[j] * u[j, k]
             # constraint violation cost
-            obj += w @ s[:, [k]]
-        obj += w @ s[:, [N]]
+            obj += cs.dot(w, s[:, k])
+        obj += cs.dot(w, s[:, N])
         # yield terminal reward
         y_N = Model.output(x[:, N], p)
         obj += -c_y * y_N[0]
