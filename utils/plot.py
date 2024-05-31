@@ -27,12 +27,12 @@ def plot_greenhouse(
     TD : np.ndarray | None, optional
         The td error data."""
     # generate output data from state data X
-    y = np.empty_like(X)
-    y_min = np.empty_like(X)
-    y_max = np.empty_like(X)
+    y = np.empty((X.shape[0], X.shape[1]-1, X.shape[2]), dtype=X.dtype)
+    y_min = y.copy()
+    y_max = y.copy()
     p = Model.get_true_parameters()
     for i in range(X.shape[0]):
-        for j in range(X.shape[1]):
+        for j in range(X.shape[1]-1):
             y[i, j, :] = Model.output(X[i, j, :], p)
             y_min[i, j, :] = Model.get_output_min(d[i, j, :])
             y_max[i, j, :] = Model.get_output_max(d[i, j, :])
@@ -75,5 +75,5 @@ def plot_greenhouse(
     _, axs = plt.subplots(nd, 1, constrained_layout=True, sharex=True)
     d_flat = d.reshape(-1, nd)
     for i in range(nd):
-        axs[i].plot(d_flat[i, :])
+        axs[i].plot(d_flat[:, i])
     plt.show()

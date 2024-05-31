@@ -373,7 +373,7 @@ class Model:
         )
         if isinstance(x, (cs.SX, cs.MX, cs.DM)):
             return cs.vertcat(dx1, dx2, dx3, dx4)
-        return np.concatenate((dx1, dx2, dx3, dx4), axis=0)
+        return np.array([dx1, dx2, dx3, dx4])
 
     @staticmethod
     def output(x: np.ndarray | cs.SX, p: np.ndarray | cs.SX) -> np.ndarray | cs.SX:

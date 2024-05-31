@@ -76,7 +76,7 @@ class NominalMpc(Mpc[cs.SX]):
         # dynamics
         if prediction_model == "euler":
             model = lambda x, u, d: Model.euler_step(x, u, d, p, ts)
-        else:  # if prediction_model == "rk4"
+        else:
             model = lambda x, u, d: Model.rk4_step(x, u, d, p, ts)
         self.set_dynamics(lambda x, u, d: model(x, u, d), n_in=3, n_out=1)
 

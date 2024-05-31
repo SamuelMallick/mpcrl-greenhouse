@@ -82,7 +82,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             self.dynamics = lambda x, u, d: Model.euler_step(x, u, d, self.p, self.ts)
 
         self.c_u = cost_parameters_dict.get(
-            "c_u", np.array([100, 1, 1])
+            "c_u", np.array([10, 1, 1])
         )  # penalty on control inputs
         self.c_y = cost_parameters_dict.get(
             "c_y", 1000.0
@@ -201,11 +201,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.previous_lettuce_yield = Model.output(self.x, self.p)[
             0
         ]  # update the previous lettuce yield
-        self.x = np.asarray(
-            self.dynamics(
+        self.x = np.asarray(self.dynamics(
                 self.x, action, self.disturbance_profile[:, self.step_counter]
-            ).elements()
-        )
+            )).reshape(self.nx)
+        
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
         return self.x, r, truncated, False, {}
