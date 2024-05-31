@@ -81,7 +81,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 ode,
                 0.0,
                 self.ts,
-                {"abstol": 1e-8, "reltol": 1e-8},
+                {"abstol": 1e-8, "reltol": 1e-8, "linear_solver": "ma27"},
             )
             xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
             self.dynamics = cs.Function("dynamics", [x, u, d], [xf])
