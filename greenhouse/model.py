@@ -3,6 +3,7 @@
 
 import casadi as cs
 import numpy as np
+from mpcrl.util.control import rk4
 from mpcrl.util.seeding import RngType
 
 
@@ -470,11 +471,7 @@ class Model:
         -------
         np.ndarray
             The state vector after one time step."""
-        k1 = M.df(x, u, d, p)
-        k2 = M.df(x + (ts / 2) * k1, u, d, p)
-        k3 = M.df(x + (ts / 2) * k2, u, d, p)
-        k4 = M.df(x + ts * k3, u, d, p)
-        return x + (ts / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+        return rk4(lambda x_: M.df(x_, u, d, p), x, ts)
 
 
 M = Model
