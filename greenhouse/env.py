@@ -26,11 +26,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     training_percentage = 0.8  # 80% of the valid data is used for training
     split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
 
-    disturbance_profiles_all_episodes: list[
-        np.ndarray
-    ] = []  # store all disturbances over all episodes
-    step_counter = 0
-
     def __init__(
         self,
         growing_days: int,
@@ -57,7 +52,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         """
         super().__init__()
 
+        # get the true parameters of the model, and initialize a storage for disturbance
+        # profiles that will be used in the environment
         self.p = Model.get_true_parameters()
+        self.disturbance_profiles_all_episodes: list[np.ndarray] = []
 
         # define the observation and action space
         self.observation_space = Box(
