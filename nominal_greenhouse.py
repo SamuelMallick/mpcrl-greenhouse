@@ -19,7 +19,7 @@ STORE_DATA = False
 PLOT = True
 
 days = 1
-episode_len = days * 24 * 4  # x days of 15 minute timesteps
+episode_len = days * LettuceGreenHouse.steps_per_day  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(
