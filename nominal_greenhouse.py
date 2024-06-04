@@ -15,10 +15,10 @@ from utils.plot import plot_greenhouse
 
 np_random = np.random.default_rng(1)
 
-STORE_DATA = False
+STORE_DATA = True
 PLOT = True
 
-days = 1
+days = 40
 episode_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
@@ -34,9 +34,14 @@ env = MonitorEpisodes(
 num_episodes = 1
 
 prediction_model: Literal["euler", "rk4"] = "rk4"
-correct_model = True
+correct_model = False
 mpc = NominalMpc(
     greenhouse_env=env,
+    cost_parameters_dict={
+        "c_u": np.array([10, 1, 1]),
+        "c_y": 1e3,
+        "w": 1e3 * np.ones(4),
+    },  # MPC cost tuned from 2022 paper
     prediction_model=prediction_model,
     correct_model=correct_model,
     np_random=np_random,
@@ -67,11 +72,10 @@ print(f"Return = {R.sum(axis=1)}")
 if PLOT:
     plot_greenhouse(X, U, d, R, None)
 
-param_dict: dict = {}
 identifier = f"nominal_greenhouse_{prediction_model}_{correct_model}"
 if STORE_DATA:
     with open(
         identifier + ".pkl",
         "wb",
     ) as file:
-        pickle.dump({"X": X, "U": U, "R": R, "d": d, "param_dict": param_dict}, file)
+        pickle.dump({"X": X, "U": U, "R": R, "d": d}, file)

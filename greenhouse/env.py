@@ -84,9 +84,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.c_u = cost_parameters_dict.get(
             "c_u", np.array([10, 1, 1])
         )  # penalty on control inputs
-        self.c_y = cost_parameters_dict.get(
-            "c_y", 1000.0
-        )  # reward on final lettuce yield
+        self.c_y = cost_parameters_dict.get("c_y", 0.0)  # reward on final lettuce yield
         self.c_dy = cost_parameters_dict.get(
             "c_dy", 100.0
         )  # reward on step-wise lettuce yield
