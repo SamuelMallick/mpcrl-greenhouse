@@ -43,9 +43,7 @@ mpc = NominalMpc(
 )
 
 agent = Log(
-    GreenhouseAgent(
-        mpc, {}
-    ),  # TODO Pass the fixed parameter names in, rather than letting them just be set by the agent in the first time step
+    GreenhouseAgent(mpc, fixed_parameters={}),
     level=logging.DEBUG,
     log_frequencies={"on_timestep_end": 1},
     to_file=True,

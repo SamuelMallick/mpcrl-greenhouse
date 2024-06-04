@@ -201,10 +201,12 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.previous_lettuce_yield = Model.output(self.x, self.p)[
             0
         ]  # update the previous lettuce yield
-        self.x = np.asarray(self.dynamics(
+        self.x = np.asarray(
+            self.dynamics(
                 self.x, action, self.disturbance_profile[:, self.step_counter]
-            )).reshape(self.nx)
-        
+            )
+        ).reshape(self.nx)
+
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
         return self.x, r, truncated, False, {}

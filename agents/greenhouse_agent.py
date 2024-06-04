@@ -1,4 +1,3 @@
-import casadi as cs
 import numpy as np
 from mpcrl import Agent, LstdQLearningAgent
 

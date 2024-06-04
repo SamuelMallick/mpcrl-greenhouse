@@ -493,8 +493,8 @@ M = Model
 
 # # disturbance profile
 # d = np.load("data/disturbances.npy")
-# VIABLE_STARTING_IDX = [0, 1, 3, 4, 5]  # TODO make these legit
-# shuffle(VIABLE_STARTING_IDX)  # TODO: find alternative to shuffle that uses np_random
+# VIABLE_STARTING_IDX = [0, 1, 3, 4, 5]
+# shuffle(VIABLE_STARTING_IDX)
 # ratio = floor(0.8 * len(VIABLE_STARTING_IDX))
 # TRAIN_VIABLE_STARTING_IDX = VIABLE_STARTING_IDX[:ratio]
 # TEST_VIABLE_STARTING_IDX = VIABLE_STARTING_IDX[ratio:]
