@@ -5,17 +5,16 @@ from typing import Literal
 # import networkx as netx
 import numpy as np
 from gymnasium.wrappers import TimeLimit
+from mpcrl import WarmStartStrategy
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
+from agents.greenhouse_agent import GreenhouseSampleAgent
 from greenhouse.env import LettuceGreenHouse
 from mpcs.sample_based import SampleBasedMpc
-from agents.greenhouse_agent import GreenhouseSampleAgent
 from utils.plot import plot_greenhouse
 
 np_random = np.random.default_rng(1)
-
-# TODO compare performance with previous implementation
 
 STORE_DATA = False
 PLOT = True
@@ -35,20 +34,25 @@ env = MonitorEpisodes(
 )
 num_episodes = 1
 
-multistarts = 1
+multistarts = 2
 num_samples = 2
 prediction_model: Literal["euler", "rk4"] = "rk4"
-sample_mpc = SampleBasedMpc(n_samples=num_samples, greenhouse_env=env, prediction_model=prediction_model, multistarts=multistarts, np_random=np_random)
+sample_mpc = SampleBasedMpc(
+    n_samples=num_samples,
+    greenhouse_env=env,
+    prediction_model=prediction_model,
+    multistarts=multistarts,
+    np_random=np_random,
+)
 agent = Log(
     GreenhouseSampleAgent(
         mpc=sample_mpc,
         fixed_parameters={},
-        # TODO: fix warm starting
-        # warmstart=WarmStartStrategy(  
-        #     random_points=sample_mpc.random_points,
-        #     update_biases_for_random_points=False,
-        #     seed=np_random,
-        # ),
+        warmstart=WarmStartStrategy(
+            random_points=sample_mpc.random_start_points,
+            update_biases_for_random_points=False,
+            seed=np_random,
+        ),
     ),
     level=logging.DEBUG,
     log_frequencies={"on_timestep_end": 1},

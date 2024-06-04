@@ -1,14 +1,14 @@
-from typing import Literal
+from collections.abc import Callable, Sequence
+from typing import Any, Literal
 
 import casadi as cs
 import numpy as np
+import numpy.typing as npt
 from csnlp import Nlp
 from csnlp import multistart as ms
 from csnlp.wrappers import Mpc
+from csnlp.wrappers.mpc.scenario_based_mpc import ScenarioBasedMpc, _n
 from mpcrl.util.seeding import RngType
-from csnlp.wrappers.mpc.scenario_based_mpc import ScenarioBasedMpc
-from typing import Callable, Literal, Optional, TypeVar, Union
-import numpy.typing as npt
 
 from greenhouse.env import LettuceGreenHouse
 from greenhouse.model import Model
@@ -29,7 +29,7 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         np_random: RngType = None,
     ) -> None:
         """Initialize the sample based robust MPC for greenhouse control.
-        
+
         Parameters
         ----------
         n_samples : int
@@ -65,32 +65,49 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         nlp: Nlp[cs.SX] = (
             Nlp() if multistarts == 1 else ms.ParallelMultistartNlp(starts=multistarts)
         )
-        super().__init__(nlp, n_scenarios=n_samples, prediction_horizon=prediction_horizon)
+        super().__init__(
+            nlp, n_scenarios=n_samples, prediction_horizon=prediction_horizon
+        )
+        self._dynamics: Sequence[cs.Function] | None = None
         self.n_samples = n_samples
         N = self.prediction_horizon
 
-        x, xs, _ = self.state("x", nx)
-        u, _ = self.action("u", nu, lb=u_min.reshape(-1, 1), ub=u_max.reshape(-1, 1))
-        s = [self.variable(f"s__{i}", (nx, N + 1), lb=0)[0] for i in range(n_samples)]  # slack vars for each scenario
-        d = self.disturbance("d", nd)
+        u_min = u_min.reshape(-1, 1)
+        u_max = u_max.reshape(-1, 1)
+        x, xs, _ = self.state("x", nx)  # NOTE: if infeasible, try to set bounds
+        u, _ = self.action("u", nu, lb=u_min, ub=u_max)
+        s = [
+            self.variable(_n("s", i), (nx, N + 1), lb=0)[0] for i in range(n_samples)
+        ]  # slack vars for each scenario
+        self.disturbance("d", nd)
 
-        # TODO: genereate parameter samples here and pass them to `multi_sample_step`
-        p = [Model.get_perturbed_parameters(list(range(Model.n_params))) for _ in range(n_samples)]
+        p = [
+            Model.get_perturbed_parameters(
+                list(range(Model.n_params)), np_random=np_random
+            )
+            for _ in range(n_samples)
+        ]
         if prediction_model == "euler":
-            dynamics = [lambda x, u, d: Model.euler_step(x, u, d, p[i], ts) for i in range(n_samples)]
+            dynamics = [
+                lambda x, u, d: Model.euler_step(x, u, d, p[i], ts)
+                for i in range(n_samples)
+            ]
         else:
-            dynamics = [lambda x, u, d: Model.rk4_step(x, u, d, p[i], ts) for i in range(n_samples)]
-        self.set_dynamics(dynamics, n_in=3, n_out=1)    # TODO make type consistent with dynamic
+            dynamics = [
+                lambda x, u, d: Model.rk4_step(x, u, d, p[i], ts)
+                for i in range(n_samples)
+            ]
+        self.set_dynamics(dynamics, n_in=3, n_out=1)
 
         # other constraints
         for k in range(N + 1):
             # same bounds on output for all scenarios, as bounds are determined by disturbances
-            y_min_k = self.parameter(f"y_min_{k}", (nx, 1)) 
+            y_min_k = self.parameter(f"y_min_{k}", (nx, 1))
             y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
             for i in range(n_samples):
                 y_k = Model.output(xs[i][:, k], p[i])
-                self.constraint(f"y_min_{k}__{i}", y_k, ">=", y_min_k - s[i][:, k])
-                self.constraint(f"y_max_{k}__{i}", y_k, "<=", y_max_k + s[i][:, k])
+                self.constraint(_n(f"y_min_{k}", i), y_k, ">=", y_min_k - s[i][:, k])
+                self.constraint(_n(f"y_max_{k}", i), y_k, "<=", y_max_k + s[i][:, k])
 
         for k in range(1, N):
             # control variation constraints
@@ -104,7 +121,7 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             for j in range(nu):
                 obj += n_samples * c_u[j] * u[j, k]
             # constraint violation cost
-            obj += sum(cs.dot(w , s[i][:, k]) for i in range(n_samples))
+            obj += sum(cs.dot(w, s[i][:, k]) for i in range(n_samples))
         obj += sum(cs.dot(w, s[i][:, N]) for i in range(n_samples))
         # yield terminal reward
         y_N = [Model.output(xs[i][:, N], p[i]) for i in range(n_samples)]
@@ -126,7 +143,7 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
                 "max_iter": 2000,
                 "print_user_options": "yes",
                 "print_options_documentation": "no",
-                # "linear_solver": "ma57",  # spral
+                "linear_solver": "ma57",  # spral
                 "nlp_scaling_method": "gradient-based",
                 "nlp_scaling_max_gradient": 10,
             },
@@ -139,17 +156,13 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         else:
             # TODO: put the same bounds as in the NLP for x and u, and set
             # WarmStartStrategy(update_biases_for_random_points=False)
-            bounds_and_size = {
-                "x": (..., ..., x.shape),
-                "u": (..., ..., u.shape),
-            }
+            points = {"u": ms.RandomStartPoint("uniform", u_min, u_max, u.shape)}
+            x_min = np.zeros((nx, 1))
+            x_max = np.asarray([[0.5], [0.01], [30], [0.02]])
+            for state in self.states:
+                points[state] = ms.RandomStartPoint("uniform", x_min, x_max, x.shape)
             self.random_start_points = ms.RandomStartPoints(
-                {
-                    n: ms.RandomStartPoint("uniform", *args)
-                    for n, args in bounds_and_size.items()
-                },
-                multistarts - 1,
-                np_random,
+                points, multistarts - 1, seed=np_random
             )
 
     def disturbance(self, name: str, size: int = 1) -> tuple[cs.SX, list[cs.SX]]:
@@ -169,19 +182,21 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             The symbol for the new disturbance in the MPC controller.
         """
         return Mpc.disturbance(self, name, size)
-    
+
     def set_dynamics(
         self,
-        F: list[Union[
-            cs.Function,
-            Callable[[tuple[npt.ArrayLike, ...]], tuple[npt.ArrayLike, ...]],
-        ]],
-        n_in: Optional[int] = None,
-        n_out: Optional[int] = None,
+        F: Sequence[
+            (
+                cs.Function
+                | Callable[[tuple[npt.ArrayLike, ...]], tuple[npt.ArrayLike, ...]]
+            )
+        ],
+        n_in: int | None = None,
+        n_out: int | None = None,
     ) -> None:
         """Sets the dynamics of all samples in the scenario based MPC.
         Each element of F corresponds to the dynamics of a sample.
-        
+
         Parameters
         ----------
         F : list[Union[casadi.Function, Callable[[tuple[npt.ArrayLike, ...]], tuple[npt.ArrayLike, ...]]]
@@ -195,8 +210,10 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         n_out : int, optional
             Same as above, for outputs."""
         if len(F) != self.n_samples:
-            raise ValueError("The number of dynamics must be equal to the number of samples.")
-        if self._dynamics is not None:  # TODO identify type of dynamics
+            raise ValueError(
+                "The number of dynamics must be equal to the number of samples."
+            )
+        if self._dynamics is not None:
             raise RuntimeError("Dynamics were already set.")
         if isinstance(F, cs.Function):
             n_in = F.n_in()
@@ -216,24 +233,29 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         else:
             self._singleshooting_dynamics(F, n_in, n_out)
         self._dynamics = F
-    
-    def _singleshooting_dynamics(self, F: list[cs.Function], _: int, n_out: int) -> None:
+
+    def _singleshooting_dynamics(
+        self, F: Sequence[cs.Function], _: int, n_out: int
+    ) -> None:
         raise NotImplementedError("This method is not implemented for SampleBasedMpc")
 
-    def _multishooting_dynamics(self, F: cs.Function, n_in: int, n_out: int) -> None:
+    def _multishooting_dynamics(
+        self, F: Sequence[cs.Function], n_in: int, n_out: int
+    ) -> None:
         state_names = self.single_states.keys()
         U = cs.vcat(self._actions_exp.values())
+        args_at: Callable[[int], tuple[Any, ...]]
         for i in range(self._n_scenarios):
-            X_i = cs.vcat([self._states[f'x__{i}'] for n in state_names])   # TODO make sure this is correct, I replaced _n
+            X_i = cs.vcat([self._states[_n("x", i)] for n in state_names])
             if n_in < 3:
                 args_at = lambda k: (X_i[:, k], U[:, k])
             else:
                 D = cs.vcat(self._disturbances.values())
-                args_at = lambda k: (X_i[:, k], U[:, k], D[:, k])   # TODO make type consistent between both args_at
+                args_at = lambda k: (X_i[:, k], U[:, k], D[:, k])
             xs_i_next = []
             for k in range(self._prediction_horizon):
                 x_i_next = F[i](*args_at(k))
                 if n_out != 1:
                     x_i_next = x_i_next[0]
                 xs_i_next.append(x_i_next)
-            self.constraint(f'dyn__{i}', cs.hcat(xs_i_next), "==", X_i[:, 1:])  # TODO check naming is correct, I replaced _n
+            self.constraint(_n("dyn", i), cs.hcat(xs_i_next), "==", X_i[:, 1:])
