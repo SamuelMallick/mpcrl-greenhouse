@@ -1,96 +1,80 @@
 import logging
 import pickle
+from typing import Literal
 
 # import networkx as netx
 import numpy as np
 from gymnasium.wrappers import TimeLimit
-from mpcrl import WarmStartStrategy
 from mpcrl.wrappers.agents import Log
 from mpcrl.wrappers.envs import MonitorEpisodes
 
-from greenhouse.env import GreenhouseSampleAgent, LettuceGreenHouse
-from greenhouse.model import (
-    generate_parameters,
-    get_control_bounds,
-    get_model_details,
-    output_true,
-)
-from mpcs import SampleBasedMpc
+from greenhouse.env import LettuceGreenHouse
+from mpcs.sample_based import SampleBasedMpc
+from agents.greenhouse_agent import GreenhouseSampleAgent
 from utils.plot import plot_greenhouse
 
 np_random = np.random.default_rng(1)
 
-STORE_DATA = True
-PLOT = False
+# TODO compare performance with previous implementation
 
-nx, nu, nd, ts, _ = get_model_details()
-u_min, u_max, du_lim = get_control_bounds()
+STORE_DATA = False
+PLOT = True
 
-c_u = np.array([10, 1, 1])  # penalty on each control signal
-c_y = np.array([1e3])  # reward on yield
-
-# generate the perturbed parameters
-generate_parameters(0.2)
-
-days = 40
-ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
+days = 1
+episode_len = days * 24 * 4  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
-        LettuceGreenHouse(days_to_grow=days, model_type="nonlinear"),
-        max_episode_steps=int(ep_len),
+        LettuceGreenHouse(
+            growing_days=days,
+            model_type="continuous",
+            disturbance_type="multiple",
+            testing=True,
+        ),
+        max_episode_steps=int(episode_len),
     )
 )
 num_episodes = 1
 
-TD = []
-
-multistarts = 10
-Ns = 20
-sample_mpc = SampleBasedMpc(
-    Ns=Ns, prediction_model="rk4", multistarts=multistarts, np_random=np_random
-)
+multistarts = 1
+num_samples = 2
+prediction_model: Literal["euler", "rk4"] = "rk4"
+sample_mpc = SampleBasedMpc(n_samples=num_samples, greenhouse_env=env, prediction_model=prediction_model, multistarts=multistarts, np_random=np_random)
 agent = Log(
     GreenhouseSampleAgent(
         mpc=sample_mpc,
         fixed_parameters={},
-        warmstart=WarmStartStrategy(
-            random_points=sample_mpc.random_points,
-            update_biases_for_random_points=False,
-            seed=np_random,
-        ),
+        # TODO: fix warm starting
+        # warmstart=WarmStartStrategy(  
+        #     random_points=sample_mpc.random_points,
+        #     update_biases_for_random_points=False,
+        #     seed=np_random,
+        # ),
     ),
     level=logging.DEBUG,
     log_frequencies={"on_timestep_end": 1},
     to_file=True,
-    log_name=f"log_sample_{Ns}",
+    log_name=f"log_sample_{num_samples}_{multistarts}_{prediction_model}",
 )
 agent.evaluate(env=env, episodes=num_episodes, seed=1, raises=False)
 
 # extract data
-if len(env.observations) > 0:
-    X = np.hstack([env.observations[i].squeeze().T for i in range(num_episodes)]).T
-    U = np.hstack([env.actions[i].squeeze().T for i in range(num_episodes)]).T
-    R = np.hstack([env.rewards[i].squeeze().T for i in range(num_episodes)]).T
-else:
-    X = np.squeeze(env.ep_observations)
-    U = np.squeeze(env.ep_actions)
-    R = np.squeeze(env.ep_rewards)
+X = np.asarray(env.observations)
+U = np.asarray(env.actions).squeeze(-1)
+R = np.asarray(env.rewards)
+d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
+# generate outputs
 
-print(f"Return = {sum(R.squeeze())}")
 
-R_eps = [sum(R[ep_len * i : ep_len * (i + 1)]) for i in range(num_episodes)]
-TD_eps = [sum(TD[ep_len * i : ep_len * (i + 1)]) / ep_len for i in range(num_episodes)]
-# generate output
-y = np.asarray([output_true(X[k, :]) for k in range(X.shape[0])]).squeeze()
-d = env.disturbance_profile_data
+print(f"Return = {R.sum(axis=1)}")
 
 if PLOT:
-    plot_greenhouse(X, U, y, d, TD, R, num_episodes, ep_len)
+    plot_greenhouse(X, U, d, R, None)
 
-param_dict = {}
+param_dict: dict = {}
+identifier = f"sample_greenhouse_{prediction_model}_{num_samples}_{multistarts}"
 if STORE_DATA:
     with open(
-        f"sample_{Ns}.pkl",
+        identifier + ".pkl",
         "wb",
     ) as file:
         pickle.dump(X, file)

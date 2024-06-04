@@ -59,24 +59,6 @@ class GreenhouseAgent(Agent):
 class GreenhouseSampleAgent(GreenhouseAgent):
     """An agent controlling the greenhouse using a sample based robust MPC."""
 
-    def set_mpc_parameters(self, d: np.ndarray) -> None:
-        """Sets the disturbance and constraints parameters of the agent's MPC.
-
-        Parameters
-        ----------
-        d : np.ndarray
-            The disturbance.
-        """
-        num_samples = self.V.num_samples  # number of samples
-        self.fixed_parameters["d"] = d[:, :-1]
-        for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = cs.vertcat(
-                *[Model.get_output_min(d[:, [k]])] * num_samples
-            )
-            self.fixed_parameters[f"y_max_{k}"] = cs.vertcat(
-                *[Model.get_output_max(d[:, [k]])] * num_samples
-            )
-
 
 class GreenhouseLearningAgent(LstdQLearningAgent, GreenhouseAgent):
     """An agent controlling the greenhouse who can learn the MPC policy using LSTD Q-learning."""

@@ -381,14 +381,14 @@ class Model:
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The output vector."""
         y1 = 1e3 * x[0]
         y2 = (
@@ -426,27 +426,27 @@ class Model:
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        u : np.ndarray
+        u : np.ndarray | cs.SX
             The input vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
-        ts : float
+        ts : float | cs.SX
             The time step.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The state vector after one time step."""
         return x + ts * M.df(x, u, d, p)
 
     @staticmethod
     def rk4_step(
         x: np.ndarray | cs.SX,
-        u: np.ndarray,
+        u: np.ndarray | cs.SX,
         d: np.ndarray | cs.SX,
         p: np.ndarray | cs.SX,
         ts: float,
@@ -455,20 +455,20 @@ class Model:
 
         Parameters
         ----------
-        x : np.ndarray
+        x : np.ndarray | cs.SX
             The state vector.
-        u : np.ndarray
+        u : np.ndarray | cs.SX
             The input vector.
-        d : np.ndarray
+        d : np.ndarray | cs.SX
             The disturbance vector.
-        p : np.ndarray
+        p : np.ndarray | cs.SX
             The parameter vector.
         ts : float
             The time step.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray | cs.SX
             The state vector after one time step."""
         k1 = M.df(x, u, d, p)
         k2 = M.df(x + (ts / 2) * k1, u, d, p)
