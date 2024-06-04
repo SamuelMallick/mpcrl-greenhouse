@@ -62,8 +62,6 @@ X = np.asarray(env.observations)
 U = np.asarray(env.actions).squeeze(-1)
 R = np.asarray(env.rewards)
 d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
-# generate outputs
-
 
 print(f"Return = {R.sum(axis=1)}")
 
@@ -77,10 +75,4 @@ if STORE_DATA:
         identifier + ".pkl",
         "wb",
     ) as file:
-        pickle.dump(X, file)
-        pickle.dump(U, file)
-        pickle.dump(y, file)
-        pickle.dump(d, file)
-        pickle.dump(R, file)
-        pickle.dump(TD, file)
-        pickle.dump(param_dict, file)
+        pickle.dump({"X": X, "U": U, "R": R, "d": d, "param_dict": param_dict}, file)
