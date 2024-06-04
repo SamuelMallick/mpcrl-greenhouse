@@ -52,16 +52,33 @@ class LearningMpc(Mpc[cs.SX]):
         N = self.prediction_horizon
         self.discount_factor = test.discount_factor
 
-        # learnable parameters
-        learnable_pars_init = test.learnable_pars_init
-        p = Model.get_perturbed_parameters(
-            test.p_perturb
-        )  # test.p_perturb contains the indexes of parameters to perturb
-        for idx in test.p_learn:  # p_learn contains the indexes of parameters to learn
-            learnable_pars_init[f"p_{idx}"] = np.asarray(p[idx])
+        # create parameters
+        # cost parameters
+        V0 = self.parameter("V0", (1,))
+        c_u = self.parameter("c_u", (nu,))
+        c_dy = self.parameter("c_dy", (1,))
+        c_y = self.parameter("c_y", (1,))
+        y_fin = self.parameter("y_fin", (1,))
+        # constraint violation parameters
+        w = self.parameter("w", (1, 4))
+        olb = self.parameter("olb", (4, 1))
+        self.parameter("oub", (4, 1))
+        # dynamics parameters
+        p = [self.parameter(f"p_{i}", (1,)) for i in range(Model.n_params)]
 
-        # fixed parameters
+        p_values = Model.get_perturbed_parameters(test.p_perturb)
+
+        # parameters initial values dictionaries
+        learnable_pars_init = test.learnable_pars_init
         fixed_pars = test.fixed_pars
+        # test.p_perturb contains the indexes of parameters to perturb
+        for i in range(
+            Model.n_params
+        ):  # p_learn contains the indexes of parameters to learn
+            if i in test.p_learn:
+                learnable_pars_init[f"p_{i}"] = np.asarray(p_values[i])
+            else:
+                fixed_pars[f"p_{i}"] = np.asarray(p_values[i])
         fixed_pars["d"] = np.zeros((nd, N))
         for k in range(N + 1):
             fixed_pars[f"y_min_{k}"] = np.zeros((nx,))
@@ -69,63 +86,33 @@ class LearningMpc(Mpc[cs.SX]):
 
         # variables (state, action, dist, slack)
         x, _ = self.state("x", nx, lb=0, ub=1e3)
-        u, _ = self.action("u", nu, lb=u_min, ub=u_max)
+        u, _ = self.action("u", nu, lb=u_min.reshape(-1, 1), ub=u_max.reshape(-1, 1))
         self.disturbance("d", nd)
         s, _, _ = self.variable("s", (nx, N + 1), lb=0)  # slack vars
-
-        # init parameters
-        V0 = self.parameter("V0", (1,))
-        c_u = self.parameter("c_u", (nu,))
-        c_dy = self.parameter("c_dy", (1,))
-        c_y = self.parameter("c_y", (1,))
-        w = self.parameter("w", (1, 4))
-        olb = self.parameter("olb", (4, 1))
-        oub = self.parameter("oub", (4, 1))
-        y_fin = self.parameter("y_fin", (1,))
-        # build tuple of learnable params and their indexes
-        p_learn_tuples = [
-            (idx, self.parameter(f"p_{idx}", (1,))) for idx in test.p_learn
-        ]
+        p = cs.vertcat(*p)  # stack the parameters for the dynamics
 
         # dynamics
-        if test.prediction_model == "rk4":
-            dynam = rk4_learnable
-        elif test.prediction_model == "euler":
-            dynam = euler_learnable
+        if prediction_model == "euler":
+            model = lambda x, u, d: Model.euler_step(x, u, d, p, ts)
         else:
-            raise ValueError(
-                f"{test.prediction_model} is not a valid prediction model."
-            )
-        self.set_dynamics(
-            lambda x, u, d: dynam(x, u, d, test.p_perturb, p_learn_tuples),
-            n_in=3,
-            n_out=1,
-        )
-
-        output = lambda x: output_learnable(x, test.p_perturb, p_learn_tuples)
+            model = lambda x, u, d: Model.rk4_step(x, u, d, p, ts)
+        self.set_dynamics(lambda x, u, d: model(x, u, d), n_in=3, n_out=1)
 
         # other constraints
-        y_min_list = [self.parameter(f"y_min_{k}", (nx, 1)) for k in range(N + 1)]
-        y_max_list = [self.parameter(f"y_max_{k}", (nx, 1)) for k in range(N + 1)]
-        y_k = [output(x[:, [0]])]
-
-        self.constraint(f"y_min_0", y_k[0], ">=", (1 + olb) * y_min_list[0] - s[:, [0]])
-        self.constraint(f"y_max_0", y_k[0], "<=", (1 + oub) * y_max_list[0] + s[:, [0]])
-        for k in range(1, N):
-            # control change constraints
-            self.constraint(f"du_geq_{k}", u[:, [k]] - u[:, [k - 1]], "<=", du_lim)
-            self.constraint(f"du_leq_{k}", u[:, [k]] - u[:, [k - 1]], ">=", -du_lim)
-
-        for k in range(1, N + 1):
-            y_k.append(output(x[:, [k]]))
+        for k in range(N + 1):
             # output constraints
-            self.constraint(
-                f"y_min_{k}", y_k[k], ">=", (1 + olb) * y_min_list[k] - s[:, [k]]
-            )
-            self.constraint(
-                f"y_max_{k}", y_k[k], "<=", (1 + oub) * y_max_list[k] + s[:, [k]]
-            )
+            y_min_k = self.parameter(f"y_min_{k}", (nx, 1))
+            y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
+            y_k = Model.output(x[:, k], p)
+            self.constraint(f"y_min_{k}", y_k, ">=", (1 + olb) * y_min_k - s[:, k])
+            self.constraint(f"y_max_{k}", y_k, "<=", (1 + olb) * y_max_k + s[:, k])
 
+        for k in range(1, N):
+            # control variation constraints
+            self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
+            self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
+
+        # objective
         obj = V0
         # penalize control effort
         for k in range(N):
@@ -134,7 +121,7 @@ class LearningMpc(Mpc[cs.SX]):
 
         # penalize constraint violations
         for k in range(N + 1):
-            obj += (self.discount_factor**k) * w @ s[:, [k]]
+            obj += (self.discount_factor**k) * cs.dot(w, s[:, [k]])
 
         # reward step wise weight increase
         for k in range(1, N + 1):
@@ -142,7 +129,6 @@ class LearningMpc(Mpc[cs.SX]):
 
         # reward final weight a.k.a terminal cost
         obj += (self.discount_factor ** (N + 1)) * c_dy * c_y * (y_fin - y_k[N][0])
-
         self.minimize(obj)
 
         # solver
@@ -160,7 +146,7 @@ class LearningMpc(Mpc[cs.SX]):
                 "max_iter": 2000,
                 "print_user_options": "yes",
                 "print_options_documentation": "no",
-                "linear_solver": "ma57",  # spral
+                # "linear_solver": "ma57",  # spral
                 "nlp_scaling_method": "gradient-based",
                 "nlp_scaling_max_gradient": 10,
             },
