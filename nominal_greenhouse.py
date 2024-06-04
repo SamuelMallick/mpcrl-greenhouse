@@ -18,8 +18,8 @@ np_random = np.random.default_rng(1)
 STORE_DATA = True
 PLOT = True
 
-days = 40
-episode_len = days * 24 * 4  # x days of 15 minute timesteps
+days = 1
+episode_len = days * LettuceGreenHouse.steps_per_day  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(

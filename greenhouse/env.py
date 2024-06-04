@@ -4,6 +4,7 @@ import casadi as cs
 import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
+from gymnasium.spaces import Box
 
 from greenhouse.model import Model
 
@@ -24,11 +25,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     )  # valid starting days of distrubance data  # TODO make these legit
     training_percentage = 0.8  # 80% of the valid data is used for training
     split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
-
-    disturbance_profiles_all_episodes: list[
-        np.ndarray
-    ] = []  # store all disturbances over all episodes
-    step_counter = 0
 
     def __init__(
         self,
@@ -56,7 +52,18 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         """
         super().__init__()
 
+        # get the true parameters of the model, and initialize a storage for disturbance
+        # profiles that will be used in the environment
         self.p = Model.get_true_parameters()
+        self.disturbance_profiles_all_episodes: list[np.ndarray] = []
+
+        # define the observation and action space
+        self.observation_space = Box(
+            np.asarray([0.0, 0.0, -273.15, 0.0]), np.inf, (self.nx,), np.float64
+        )
+        self.action_space = Box(
+            Model.get_u_min(), Model.get_u_max(), (self.nu,), np.float64
+        )
 
         # define the dynamics of the environment
         if model_type == "continuous":
@@ -72,7 +79,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 ode,
                 0.0,
                 self.ts,
-                {"abstol": 1e-8, "reltol": 1e-8},
+                {"abstol": 1e-8, "reltol": 1e-8, "linear_solver": "ma27"},
             )
             xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
             self.dynamics = cs.Function("dynamics", [x, u, d], [xf])
@@ -107,6 +114,11 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.disturbance_type = disturbance_type
         self.testing = testing
 
+    @property
+    def current_disturbance(self) -> npt.NDArray[np.floating]:
+        """Gets the disturbance values at the current timestep."""
+        return self.disturbance_profile[:, self.step_counter]
+
     def reset(
         self,
         *,
@@ -127,6 +139,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         tuple
             The initial state of the environment and an empty dictionary."""
         super().reset(seed=seed, options=options)
+        self.observation_space.seed(seed)
+        self.action_space.seed(seed)
+
         self.x = np.array([0.0035, 0.001, 15, 0.008])  # initial condition of the system
         self.previous_lettuce_yield = Model.output(self.x, self.p)[
             0
@@ -140,6 +155,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         )  # only append growing days worth of data
 
         self.step_counter = 0
+        self.previous_action = np.zeros(self.nu)
+        assert self.observation_space.contains(self.x) and self.action_space.contains(
+            self.previous_action
+        ), "Invalid state and action in `reset`."
         return self.x, {}
 
     def get_stage_cost(
@@ -160,8 +179,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             The stage cost of the environment."""
         cost = 0.0
         y = Model.output(state, self.p)  # current output
-        y_max = Model.get_output_max(self.disturbance_profile[:, self.step_counter])
-        y_min = Model.get_output_min(self.disturbance_profile[:, self.step_counter])
+        y_max = Model.get_output_max(self.current_disturbance)
+        y_min = Model.get_output_min(self.current_disturbance)
 
         # penalize control inputs
         cost += np.dot(self.c_u, action).item()
@@ -194,19 +213,19 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         tuple
             The new state of the environment, the reward, whether the episode is truncated, whether the episode is terminated, and an empty dictionary.
         """
-        action = np.asarray(action.elements())
+        action = np.asarray(action).reshape(self.nu)
+        assert self.action_space.contains(action), "Invalid action in `step`."
         r = float(self.get_stage_cost(self.x, action))
         self.previous_lettuce_yield = Model.output(self.x, self.p)[
             0
         ]  # update the previous lettuce yield
         self.x = np.asarray(
-            self.dynamics(
-                self.x, action, self.disturbance_profile[:, self.step_counter]
-            )
+            self.dynamics(self.x, action, self.current_disturbance)
         ).reshape(self.nx)
-
+        assert self.observation_space.contains(self.x), "Invalid next state in `step`."
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
+        self.previous_action = action
         return self.x, r, truncated, False, {}
 
     def get_current_disturbance(self, length: int) -> npt.NDArray[np.floating]:
