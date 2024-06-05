@@ -1,29 +1,23 @@
 import importlib
 import logging
 import pickle
-from typing import Literal
 import sys
-# import networkx as netx
-from mpcrl import LearnableParametersDict
+from typing import Literal
+
+import casadi as cs
 import numpy as np
 from gymnasium.wrappers import TimeLimit
-from mpcrl.wrappers.agents import Log
-from mpcrl.wrappers.envs import MonitorEpisodes
-from greenhouse.model import Model
-from agents.greenhouse_agent import GreenhouseAgent, GreenhouseLearningAgent
-from greenhouse.env import LettuceGreenHouse
-from mpcs.learning import LearningMpc
-from utils.plot import plot_greenhouse
-from gymnasium.wrappers import TimeLimit
+
+# import networkx as netx
 from mpcrl import LearnableParameter, LearnableParametersDict
 from mpcrl.wrappers.agents import Evaluate, Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
-import importlib
-import logging
-import pickle
-import sys
 
-import casadi as cs
+from agents.greenhouse_agent import GreenhouseLearningAgent
+from greenhouse.env import LettuceGreenHouse
+from greenhouse.model import Model
+from mpcs.learning import LearningMpc
+from utils.plot import plot_greenhouse
 
 np_random = np.random.default_rng(1)
 
@@ -36,7 +30,8 @@ if len(sys.argv) > 1:
     mod = importlib.import_module(f"test_configs.{config_file}")
     test = mod.Test()
 else:
-    from sims.configs.default import Test # type: ignore
+    from sims.configs.default import Test  # type: ignore
+
     test = Test()
 
 
@@ -73,8 +68,12 @@ mpc = LearningMpc(
     prediction_model=prediction_model,
     np_random=np_random,
 )
-param_bounds = Model.get_learnable_parameter_bounds()   # includes bounds just on model parameters
-param_bounds.update(test.learn_bounds)  # ad dalso the bounds on other learnable parameters
+param_bounds = (
+    Model.get_learnable_parameter_bounds()
+)  # includes bounds just on model parameters
+param_bounds.update(
+    test.learn_bounds
+)  # ad dalso the bounds on other learnable parameters
 learnable_pars = LearnableParametersDict[cs.SX](
     (
         LearnableParameter(
@@ -125,8 +124,10 @@ TD = agent.td_errors
 TD = np.asarray(TD).reshape(test.num_episodes, -1)
 param_dict = {}
 for key, val in agent.updates_history.items():
-    temp = [val[0]]*test.skip_first # repeat the first value as first skip_first updates are not performed
-    val = [*temp, *val[1:]] # take index from 1 as first valeu is prior to any updates
+    temp = [
+        val[0]
+    ] * test.skip_first  # repeat the first value as first skip_first updates are not performed
+    val = [*temp, *val[1:]]  # take index from 1 as first valeu is prior to any updates
     param_dict[key] = np.asarray(val).reshape(test.num_episodes, -1)
 # from train env
 X_tr = np.asarray(train_env.observations)
@@ -138,7 +139,7 @@ X_ev = np.asarray(eval_env.observations)
 U_ev = np.asarray(eval_env.actions).squeeze(-1)
 R_ev = np.asarray(eval_env.rewards)
 d_ev = np.asarray(eval_env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
-if PLOT:    # plot training data
+if PLOT:  # plot training data
     plot_greenhouse(X_tr, U_tr, d_tr, R_tr, TD)
 
 identifier_tr = test.test_ID + "_train"
@@ -148,7 +149,17 @@ if STORE_DATA:
         f"{identifier_tr}.pkl",
         "wb",
     ) as file:
-        pickle.dump({"X": X_tr, "U": U_tr, "R": R_tr, "d": d_tr, "TD": TD, "param_dict": param_dict}, file)
+        pickle.dump(
+            {
+                "X": X_tr,
+                "U": U_tr,
+                "R": R_tr,
+                "d": d_tr,
+                "TD": TD,
+                "param_dict": param_dict,
+            },
+            file,
+        )
     with open(
         f"{identifier_ev}.pkl",
         "wb",
