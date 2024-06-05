@@ -13,9 +13,9 @@ class Test:
     num_episodes = 100
 
     # mpc and model params
-    base_model: Literal[
-        "nonlinear", "rk4", "euler"
-    ] = "rk4"  # underlying simulation model
+    base_model: Literal["nonlinear", "rk4", "euler"] = (
+        "rk4"  # underlying simulation model
+    )
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 1
