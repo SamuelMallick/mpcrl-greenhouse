@@ -60,9 +60,9 @@ class LearningMpc(Mpc[cs.SX]):
         c_y = self.parameter("c_y", (1,))
         y_fin = self.parameter("y_fin", (1,))
         # constraint violation parameters
-        w = self.parameter("w", (1, 4))
-        olb = self.parameter("olb", (4, 1))
-        self.parameter("oub", (4, 1))
+        w = self.parameter("w", (4,))
+        olb = self.parameter("olb", (4,))
+        oub = self.parameter("oub", (4,))
         # dynamics parameters
         p = [self.parameter(f"p_{i}", (1,)) for i in range(Model.n_params)]
 
@@ -83,6 +83,8 @@ class LearningMpc(Mpc[cs.SX]):
         for k in range(N + 1):
             fixed_pars[f"y_min_{k}"] = np.zeros((nx,))
             fixed_pars[f"y_max_{k}"] = np.zeros((nx,))
+        self.learnable_pars_init = learnable_pars_init
+        self.fixed_pars = fixed_pars
 
         # variables (state, action, dist, slack)
         x, _ = self.state("x", nx, lb=0, ub=1e3)
@@ -99,13 +101,13 @@ class LearningMpc(Mpc[cs.SX]):
         self.set_dynamics(lambda x, u, d: model(x, u, d), n_in=3, n_out=1)
 
         # other constraints
+        y = [Model.output(x[:, k], p) for k in range(N + 1)]
         for k in range(N + 1):
             # output constraints
             y_min_k = self.parameter(f"y_min_{k}", (nx, 1))
             y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
-            y_k = Model.output(x[:, k], p)
-            self.constraint(f"y_min_{k}", y_k, ">=", (1 + olb) * y_min_k - s[:, k])
-            self.constraint(f"y_max_{k}", y_k, "<=", (1 + olb) * y_max_k + s[:, k])
+            self.constraint(f"y_min_{k}", y[k], ">=", (1 + olb) * y_min_k - s[:, k])
+            self.constraint(f"y_max_{k}", y[k], "<=", (1 + oub) * y_max_k + s[:, k])
 
         for k in range(1, N):
             # control variation constraints
@@ -121,14 +123,14 @@ class LearningMpc(Mpc[cs.SX]):
 
         # penalize constraint violations
         for k in range(N + 1):
-            obj += (self.discount_factor**k) * cs.dot(w, s[:, [k]])
+            obj += (self.discount_factor**k) * cs.dot(w, s[:, k])
 
         # reward step wise weight increase
         for k in range(1, N + 1):
-            obj += -(self.discount_factor**k) * c_dy * (y_k[k][0] - y_k[k - 1][0])
+            obj += -(self.discount_factor**k) * c_dy * (y[k][0] - y[k - 1][0])
 
         # reward final weight a.k.a terminal cost
-        obj += (self.discount_factor ** (N + 1)) * c_dy * c_y * (y_fin - y_k[N][0])
+        obj += (self.discount_factor ** (N + 1)) * c_dy * c_y * (y_fin - y[N][0])
         self.minimize(obj)
 
         # solver
