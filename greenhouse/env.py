@@ -22,8 +22,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     # disturbance data
     disturbance_data = np.load("data/disturbances.npy")
     VIABLE_STARTING_IDX = np.arange(20)  # valid starting days of distrubance data
-    training_percentage = 0.8  # 80% of the valid data is used for training
-    split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
 
     def __init__(
         self,
@@ -101,14 +99,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             "w_du", np.full(self.nu, 1e3)
         )  # penatly on control variation constraint violations
 
-        if len(self.VIABLE_STARTING_IDX) == 1:
-            self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
-            self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
-        else:
-            self.np_random.shuffle(self.VIABLE_STARTING_IDX)
-            self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[: self.split_indx]
-            self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[self.split_indx :]
-
         self.yield_step = (
             self.steps_per_day * growing_days - 1
         )  # the time step at which the yield reward is caclculated
@@ -149,8 +139,20 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             0
         ]  # get the initial weight (first element of output)
 
-        # reset the disturbance profile
+        # randomly shuffle the disturbance data's starting indeces (but do it only once)
+        # and then reset the disturbance profile
+        if not hasattr(self, "TRAIN_VIABLE_STARTING_IDX"):
+            training_percentage = 0.8  # 80% of the valid data is used for training
+            idx = int(np.floor(training_percentage * self.VIABLE_STARTING_IDX.size))
+            if len(self.VIABLE_STARTING_IDX) == 1:
+                self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+                self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+            else:
+                self.np_random.shuffle(self.VIABLE_STARTING_IDX)
+                self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[:idx]
+                self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[idx:]
         self.disturbance_profile = self.generate_disturbance_profile()
+
         # add in this episodes disturbance to the data, adding only the episode length of data
         self.disturbance_profiles_all_episodes.append(
             self.disturbance_profile[:, : self.growing_days * self.steps_per_day]
