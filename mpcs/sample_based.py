@@ -63,7 +63,11 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
 
         # initialize base mpc
         nlp: Nlp[cs.SX] = (
-            Nlp() if multistarts == 1 else ms.ParallelMultistartNlp(starts=multistarts)
+            Nlp()
+            if multistarts == 1
+            else ms.ParallelMultistartNlp(
+                starts=multistarts, parallel_kwargs={"n_jobs": multistarts}
+            )
         )
         super().__init__(
             nlp, n_scenarios=n_samples, prediction_horizon=prediction_horizon
