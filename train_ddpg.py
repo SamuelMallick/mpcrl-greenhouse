@@ -33,7 +33,7 @@ def do_training(
             gamma=0.9,
             seed=int(seeds[n]),
             device=devices[n % len(devices)],
-            verbose=0,
+            verbose=1,
         )
 
     return Parallel(n_jobs=n_agents, return_as="generator_unordered")(
