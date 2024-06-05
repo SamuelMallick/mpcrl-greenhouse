@@ -1,6 +1,7 @@
+import os
 import pickle
 import sys
-import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -16,7 +17,13 @@ ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 seconds_in_time_step = 15 * 60
 nx = 4
 nu = 3
-file_names = ["results/nominal/nominal_greenhouse_rk4_True.pkl", "results/nominal/nominal_greenhouse_rk4_False.pkl", "results/sample/sample_greenhouse_rk4_2_1.pkl", "results/sample/sample_greenhouse_rk4_5_1.pkl", "results/sample/sample_greenhouse_rk4_10_1.pkl"]
+file_names = [
+    "results/nominal/nominal_greenhouse_rk4_True.pkl",
+    "results/nominal/nominal_greenhouse_rk4_False.pkl",
+    "results/sample/sample_greenhouse_rk4_2_1.pkl",
+    "results/sample/sample_greenhouse_rk4_5_1.pkl",
+    "results/sample/sample_greenhouse_rk4_10_1.pkl",
+]
 p = Model.get_true_parameters()
 ep_num = 0
 
@@ -38,7 +45,9 @@ EPI_indx = 3
 # plot environment rewards
 R = [o["R"] for o in data]
 ep_axs[R_indx].bar(
-    list(range(len(R))), [np.sum(o[ep_num], axis=0) for o in R], color=[f"C{i}" for i in range(len(R))]
+    list(range(len(R))),
+    [np.sum(o[ep_num], axis=0) for o in R],
+    color=[f"C{i}" for i in range(len(R))],
 )  # plot the total reward for each episode
 ep_axs[R_indx].set_yscale("log")
 ep_axs[R_indx].set_ylabel("$L$")
@@ -47,7 +56,10 @@ ep_axs[R_indx].set_ylabel("$L$")
 X = [o["X"] for o in data]
 d = [o["d"] for o in data]
 # generate output data from state data X
-y = [np.empty((X[i].shape[0], X[i].shape[1] - 1, X[i].shape[2]), dtype=X[i].dtype) for i in range(len(data))]
+y = [
+    np.empty((X[i].shape[0], X[i].shape[1] - 1, X[i].shape[2]), dtype=X[i].dtype)
+    for i in range(len(data))
+]
 y_min = [y[i].copy() for i in range(len(data))]
 y_max = [y[i].copy() for i in range(len(data))]
 viols = [y[i].copy() for i in range(len(data))]
@@ -63,14 +75,18 @@ for z in range(len(data)):
 
 # plot constraint violations
 ep_axs[VIOL_indx].bar(
-    list(range(len(X))), [np.sum(viols[i][ep_num].flatten()) for i in range(len(data))], color=[f"C{i}" for i in range(len(R))]
+    list(range(len(X))),
+    [np.sum(viols[i][ep_num].flatten()) for i in range(len(data))],
+    color=[f"C{i}" for i in range(len(R))],
 )  # plot the total reward for each episode
 ep_axs[VIOL_indx].set_yscale("log")
 ep_axs[VIOL_indx].set_ylabel("$viols$")
 
 # plot yields
 ep_axs[YIELD_indx].bar(
-    list(range(len(y))), [y[i][ep_num, -1, 0] for i in range(len(data))], color=[f"C{i}" for i in range(len(R))]
+    list(range(len(y))),
+    [y[i][ep_num, -1, 0] for i in range(len(data))],
+    color=[f"C{i}" for i in range(len(R))],
 )  # plot the total reward for each episode
 # ep_axs[YIELD_indx].set_yscale("log")
 ep_axs[YIELD_indx].set_ylabel("$yield$")
@@ -92,7 +108,12 @@ for i in range(len(U)):
     )  # converting co2 from mg to kg
 
 # plot economic performance index
-ep_axs[EPI_indx].bar(list(range(len(y))), EPI, tick_label=['nom perfect', 'nom', 'scenario 2', 'scenario 5', 'scenario 10'], color=[f"C{i}" for i in range(len(R))])  # plot the total reward for each episode
+ep_axs[EPI_indx].bar(
+    list(range(len(y))),
+    EPI,
+    tick_label=["nom perfect", "nom", "scenario 2", "scenario 5", "scenario 10"],
+    color=[f"C{i}" for i in range(len(R))],
+)  # plot the total reward for each episode
 ep_axs[EPI_indx].set_ylabel("$EPI$")
 
 

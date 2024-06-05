@@ -60,9 +60,7 @@ for i in range(num_tests):
         y_max = Model.get_output_max(d[i][:, [k]])
         y_min = Model.get_output_min(d[i][:, [k]])
         # extra +i index in y because it has ep_len+1 entries for each ep
-        if any(y[i][k, :] > y_max) or any(
-            y[i][k, :] < y_min
-        ):
+        if any(y[i][k, :] > y_max) or any(y[i][k, :] < y_min):
             num_cnstr_viols[i, :] += 1
             y_below = y[i][[k], :].reshape(4, 1) - y_min
             y_below[y_below > 0] = 0
