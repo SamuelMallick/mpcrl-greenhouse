@@ -17,13 +17,11 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     nd = 4  # number of disturbances
     ts = 60.0 * 15.0  # time step (15 minutes) in seconds
     steps_per_day = 24 * 4  # number of time steps per day
-    du_lim = Model.get_du_lim()    # maximum allowed variation in control inputs
+    du_lim = Model.get_du_lim()  # maximum allowed variation in control inputs
 
     # disturbance data
     disturbance_data = np.load("data/disturbances.npy")
-    VIABLE_STARTING_IDX = np.arange(20)  # valid starting days of distrubance data  # TODO make these legit
-    training_percentage = 0.8  # 80% of the valid data is used for training
-    split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
+    VIABLE_STARTING_IDX = np.arange(20)  # valid starting days of distrubance data
 
     def __init__(
         self,
@@ -78,10 +76,24 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 ode,
                 0.0,
                 self.ts,
-                {"abstol": 1e-8, "reltol": 1e-8, "linear_solver": "ma27"},
+                {"abstol": 1e-8, "reltol": 1e-8},
             )
             xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
-            self.dynamics = cs.Function("dynamics", [x, u, d], [xf])
+            dynamics_cvodes = cs.Function("dynamics", [x, u, d], [xf])
+            dynamics_rk4_fallback = cs.Function(
+                "dynamics_fallback",
+                [x, u, d],
+                [Model.rk4_step(x, u, d, self.p, self.ts, steps_per_ts=50)],
+            )
+
+            def _dynamics(x, u, d):
+                try:
+                    return dynamics_cvodes(x, u, d)
+                except RuntimeError:
+                    return dynamics_rk4_fallback(x, u, d)
+
+            self.dynamics = _dynamics
+
         elif model_type == "rk4":
             self.dynamics = lambda x, u, d: Model.rk4_step(x, u, d, self.p, self.ts)
         elif model_type == "euler":
@@ -94,17 +106,12 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.c_dy = cost_parameters_dict.get(
             "c_dy", 100.0
         )  # reward on step-wise lettuce yield
-        self.w = cost_parameters_dict.get(
-            "w", 1e3 * np.ones(4)
+        self.w_y = cost_parameters_dict.get(
+            "w_y", np.full(self.nx, 1e3)
         )  # penatly on constraint violations
-
-        if len(self.VIABLE_STARTING_IDX) == 1:
-            self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
-            self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
-        else:
-            self.np_random.shuffle(self.VIABLE_STARTING_IDX)
-            self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[: self.split_indx]
-            self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[self.split_indx :]
+        self.w_du = cost_parameters_dict.get(
+            "w_du", np.full(self.nu, 1e3)
+        )  # penatly on control variation constraint violations
 
         self.yield_step = (
             self.steps_per_day * growing_days - 1
@@ -146,8 +153,20 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             0
         ]  # get the initial weight (first element of output)
 
-        # reset the disturbance profile
+        # randomly shuffle the disturbance data's starting indeces (but do it only once)
+        # and then reset the disturbance profile
+        if not hasattr(self, "TRAIN_VIABLE_STARTING_IDX"):
+            training_percentage = 0.8  # 80% of the valid data is used for training
+            idx = int(np.floor(training_percentage * self.VIABLE_STARTING_IDX.size))
+            if len(self.VIABLE_STARTING_IDX) == 1:
+                self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+                self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+            else:
+                self.np_random.shuffle(self.VIABLE_STARTING_IDX)
+                self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[:idx]
+                self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[idx:]
         self.disturbance_profile = self.generate_disturbance_profile()
+
         # add in this episodes disturbance to the data, adding only the episode length of data
         self.disturbance_profiles_all_episodes.append(
             self.disturbance_profile[:, : self.growing_days * self.steps_per_day]
@@ -188,10 +207,13 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         cost -= self.c_dy * (y[0] - self.previous_lettuce_yield)
 
         # penalize constraint violations
-        cost += np.dot(self.w, np.maximum(0, y_min - y)).item()
-        cost += np.dot(self.w, np.maximum(0, y - y_max)).item()
+        cost += np.dot(self.w_y, np.maximum(0, y_min - y)).item()
+        cost += np.dot(self.w_y, np.maximum(0, y - y_max)).item()
         if self.step_counter > 0:
-            cost += np.dot(self.w[:3], np.maximum(0, np.abs(action - self.previous_action) - self.du_lim))
+            cost += np.dot(
+                self.w_du,
+                np.maximum(0, np.abs(action - self.previous_action) - self.du_lim),
+            )
 
         # reward final yield
         if self.step_counter == self.yield_step:
@@ -302,5 +324,6 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             "c_u": self.c_u,
             "c_y": self.c_y,
             "c_dy": self.c_dy,
-            "w": self.w,
+            "w_y": self.w_y,
+            "w_du": self.w_du,
         }

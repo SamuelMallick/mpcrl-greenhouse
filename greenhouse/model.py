@@ -451,6 +451,7 @@ class Model:
         d: np.ndarray | cs.SX,
         p: np.ndarray | cs.SX,
         ts: float,
+        steps_per_ts: int = 1,
     ) -> np.ndarray | cs.SX:
         """Get discrete runge-kutter-4 approximation for state update.
 
@@ -466,12 +467,14 @@ class Model:
             The parameter vector.
         ts : float
             The time step.
+        steps_per_ts : int, optional
+            How many RK4 steps to take in one dt interval, by default 1
 
         Returns
         -------
         np.ndarray | cs.SX
             The state vector after one time step."""
-        return rk4(lambda x_: M.df(x_, u, d, p), x, ts)
+        return rk4(lambda x_: M.df(x_, u, d, p), x, ts, steps_per_ts)
 
 
 M = Model

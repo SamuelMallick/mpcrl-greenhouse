@@ -9,6 +9,7 @@ from gymnasium.wrappers import TimeLimit, TransformReward
 from mpcrl.wrappers.envs import MonitorEpisodes
 from stable_baselines3 import DDPG
 from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.utils import set_random_seed
@@ -151,6 +152,7 @@ def train_ddpg(
         seed=seed,
         device=device,
     )
+    model.set_logger(configure(".", ["log"]))
 
     # add hooks to perform L2 gradient norm clipping
     for p in chain(model.actor.parameters(), model.critic.parameters()):

@@ -59,11 +59,15 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             cost_parameters_dict = greenhouse_env.get_cost_parameters()
         c_u = cost_parameters_dict["c_u"]  # penalty on each control signal
         c_y = cost_parameters_dict["c_y"]  # reward on yield
-        w = cost_parameters_dict["w"]  # penalty on constraint violations
+        w_y = cost_parameters_dict["w_y"]  # penalty on constraint violations
 
         # initialize base mpc
         nlp: Nlp[cs.SX] = (
-            Nlp() if multistarts == 1 else ms.ParallelMultistartNlp(starts=multistarts)
+            Nlp()
+            if multistarts == 1
+            else ms.ParallelMultistartNlp(
+                starts=multistarts, parallel_kwargs={"n_jobs": multistarts}
+            )
         )
         super().__init__(
             nlp, n_scenarios=n_samples, prediction_horizon=prediction_horizon
@@ -121,8 +125,8 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             for j in range(nu):
                 obj += n_samples * c_u[j] * u[j, k]
             # constraint violation cost
-            obj += sum(cs.dot(w, s[i][:, k]) for i in range(n_samples))
-        obj += sum(cs.dot(w, s[i][:, N]) for i in range(n_samples))
+            obj += sum(cs.dot(w_y, s[i][:, k]) for i in range(n_samples))
+        obj += sum(cs.dot(w_y, s[i][:, N]) for i in range(n_samples))
         # yield terminal reward
         y_N = [Model.output(xs[i][:, N], p[i]) for i in range(n_samples)]
         obj += sum(-c_y * y_N[i][0] for i in range(n_samples))
