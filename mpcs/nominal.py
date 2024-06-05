@@ -52,7 +52,7 @@ class NominalMpc(Mpc[cs.SX]):
             cost_parameters_dict = greenhouse_env.get_cost_parameters()
         c_u = cost_parameters_dict["c_u"]  # penalty on each control signal
         c_y = cost_parameters_dict["c_y"]  # reward on yield
-        w = cost_parameters_dict["w"]  # penalty on constraint violations
+        w_y = cost_parameters_dict["w_y"]  # penalty on constraint violations
 
         # initialize base mpc
         nlp = Nlp[cs.SX](debug=False)
@@ -101,8 +101,8 @@ class NominalMpc(Mpc[cs.SX]):
             for j in range(nu):
                 obj += c_u[j] * u[j, k]
             # constraint violation cost
-            obj += cs.dot(w, s[:, k])
-        obj += cs.dot(w, s[:, N])
+            obj += cs.dot(w_y, s[:, k])
+        obj += cs.dot(w_y, s[:, N])
         # yield terminal reward
         y_N = Model.output(x[:, N], p)
         obj += -c_y * y_N[0]
