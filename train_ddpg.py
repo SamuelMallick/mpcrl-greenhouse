@@ -80,12 +80,12 @@ def store_data(
         R = data[env_type]["R"]
         for i in range(X.shape[0]):
             with open(f"{identifier}_{env_type}_{i}.pkl", "wb") as file:
-                pickle.dump({"X": X[i], "U": U[i], "D": D[i], "R": R[i]}, file)
+                pickle.dump({"X": X[i], "U": U[i], "d": D[i], "R": R[i]}, file)
 
 
 if __name__ == "__main__":
     # launch training
-    simulations = do_training(episodes=1, days_per_episode=2, n_agents=3, seed=1)
+    simulations = do_training(episodes=1000, days_per_episode=40, n_agents=1, seed=1)
 
     # process and plot or store data
     PLOT = False

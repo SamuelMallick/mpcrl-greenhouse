@@ -17,11 +17,11 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     nd = 4  # number of disturbances
     ts = 60.0 * 15.0  # time step (15 minutes) in seconds
     steps_per_day = 24 * 4  # number of time steps per day
-    du_lim = Model.get_du_lim()    # maximum allowed variation in control inputs
+    du_lim = Model.get_du_lim()  # maximum allowed variation in control inputs
 
     # disturbance data
     disturbance_data = np.load("data/disturbances.npy")
-    VIABLE_STARTING_IDX = np.arange(20)  # valid starting days of distrubance data  # TODO make these legit
+    VIABLE_STARTING_IDX = np.arange(20)  # valid starting days of distrubance data
     training_percentage = 0.8  # 80% of the valid data is used for training
     split_indx = int(np.floor(training_percentage * len(VIABLE_STARTING_IDX)))
 
@@ -97,6 +97,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.w_y = cost_parameters_dict.get(
             "w_y", np.full(self.nx, 1e3)
         )  # penatly on constraint violations
+        self.w_du = cost_parameters_dict.get(
+            "w_du", np.full(self.nu, 1e3)
+        )  # penatly on control variation constraint violations
 
         if len(self.VIABLE_STARTING_IDX) == 1:
             self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
@@ -191,7 +194,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         cost += np.dot(self.w_y, np.maximum(0, y_min - y)).item()
         cost += np.dot(self.w_y, np.maximum(0, y - y_max)).item()
         if self.step_counter > 0:
-            cost += np.dot(self.w[:3], np.maximum(0, np.abs(action - self.previous_action) - self.du_lim))
+            cost += np.dot(
+                self.w_du,
+                np.maximum(0, np.abs(action - self.previous_action) - self.du_lim),
+            )
 
         # reward final yield
         if self.step_counter == self.yield_step:
@@ -303,4 +309,5 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             "c_y": self.c_y,
             "c_dy": self.c_dy,
             "w_y": self.w_y,
+            "w_du": self.w_du,
         }
