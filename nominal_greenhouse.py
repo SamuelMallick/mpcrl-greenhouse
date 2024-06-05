@@ -41,7 +41,7 @@ mpc = NominalMpc(
     cost_parameters_dict={
         "c_u": np.array([10, 1, 1]),
         "c_y": 1e3,
-        "w": 1e3 * np.ones(4),
+        "w_y": 1e3 * np.ones(4),
     },  # MPC cost tuned from 2022 paper
     prediction_model=prediction_model,
     correct_model=correct_model,
