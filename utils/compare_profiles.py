@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 sys.path.append(os.getcwd())
-
-from greenhouse.model import get_y_max, get_y_min
+from greenhouse.model import Model
 
 plt.rc("text", usetex=True)
 plt.rc("font", size=14)
@@ -56,12 +55,13 @@ axs[0].set_ylabel(r"$yield$")
 num_cnstr_viols = np.zeros((num_tests, 1))
 mag_cnstr_viols = np.zeros((num_tests, 1))
 for i in range(num_tests):
+    print(f"test {i}")
     for k in range(ep_len):
-        y_max = get_y_max(d[i][:, [k]])
-        y_min = get_y_min(d[i][:, [k]])
+        y_max = Model.get_output_max(d[i][:, [k]])
+        y_min = Model.get_output_min(d[i][:, [k]])
         # extra +i index in y because it has ep_len+1 entries for each ep
-        if any(y[i][[k], :].reshape(4, 1) > y_max) or any(
-            y[i][[k], :].reshape(4, 1) < y_min
+        if any(y[i][k, :] > y_max) or any(
+            y[i][k, :] < y_min
         ):
             num_cnstr_viols[i, :] += 1
             y_below = y[i][[k], :].reshape(4, 1) - y_min
