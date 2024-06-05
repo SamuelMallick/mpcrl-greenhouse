@@ -33,6 +33,7 @@ env = MonitorEpisodes(
     )
 )
 num_episodes = 1
+initial_day = 0
 
 multistarts = 1
 num_samples = 10
@@ -64,7 +65,13 @@ agent = Log(
     to_file=True,
     log_name=f"log_sample_{num_samples}_{multistarts}_{prediction_model}",
 )
-agent.evaluate(env=env, episodes=num_episodes, seed=1, raises=False)
+agent.evaluate(
+    env=env,
+    episodes=num_episodes,
+    seed=1,
+    raises=False,
+    env_reset_options={"initial_day": initial_day},
+)
 
 # extract data
 X = np.asarray(env.observations)
@@ -77,7 +84,9 @@ print(f"Return = {R.sum(axis=1)}")
 if PLOT:
     plot_greenhouse(X, U, d, R, None)
 
-identifier = f"sample_greenhouse_{prediction_model}_{num_samples}_{multistarts}"
+identifier = (
+    f"sample_greenhouse_{prediction_model}_{num_samples}_{multistarts}_{initial_day}"
+)
 if STORE_DATA:
     with open(
         identifier + ".pkl",

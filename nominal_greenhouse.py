@@ -32,6 +32,7 @@ env = MonitorEpisodes(
     )
 )
 num_episodes = 1
+initial_day = 0
 
 prediction_model: Literal["euler", "rk4"] = "rk4"
 correct_model = False
@@ -59,6 +60,7 @@ agent.evaluate(
     episodes=num_episodes,
     seed=1,
     raises=False,
+    env_reset_options={"initial_day": initial_day},
 )
 
 # extract data
@@ -72,7 +74,7 @@ print(f"Return = {R.sum(axis=1)}")
 if PLOT:
     plot_greenhouse(X, U, d, R, None)
 
-identifier = f"nominal_greenhouse_{prediction_model}_{correct_model}"
+identifier = f"nominal_greenhouse_{prediction_model}_{correct_model}_{initial_day}"
 if STORE_DATA:
     with open(
         identifier + ".pkl",

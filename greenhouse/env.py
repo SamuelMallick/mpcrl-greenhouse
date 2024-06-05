@@ -153,19 +153,24 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             0
         ]  # get the initial weight (first element of output)
 
-        # randomly shuffle the disturbance data's starting indeces (but do it only once)
-        # and then reset the disturbance profile
-        if not hasattr(self, "TRAIN_VIABLE_STARTING_IDX"):
-            training_percentage = 0.8  # 80% of the valid data is used for training
-            idx = int(np.floor(training_percentage * self.VIABLE_STARTING_IDX.size))
-            if len(self.VIABLE_STARTING_IDX) == 1:
-                self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
-                self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
-            else:
-                self.np_random.shuffle(self.VIABLE_STARTING_IDX)
-                self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[:idx]
-                self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[idx:]
-        self.disturbance_profile = self.generate_disturbance_profile()
+        if options is not None and "initial_day" in options:
+            self.disturbance_profile = self.generate_disturbance_profile(
+                options["initial_day"]
+            )
+        else:
+            # randomly shuffle the disturbance data's starting indeces (but do it only once)
+            # and then reset the disturbance profile
+            if not hasattr(self, "TRAIN_VIABLE_STARTING_IDX"):
+                training_percentage = 0.8  # 80% of the valid data is used for training
+                idx = int(np.floor(training_percentage * self.VIABLE_STARTING_IDX.size))
+                if len(self.VIABLE_STARTING_IDX) == 1:
+                    self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+                    self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX
+                else:
+                    self.np_random.shuffle(self.VIABLE_STARTING_IDX)
+                    self.TRAIN_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[:idx]
+                    self.TEST_VIABLE_STARTING_IDX = self.VIABLE_STARTING_IDX[idx:]
+            self.disturbance_profile = self.generate_disturbance_profile()
 
         # add in this episodes disturbance to the data, adding only the episode length of data
         self.disturbance_profiles_all_episodes.append(
@@ -267,26 +272,35 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             :, self.step_counter : self.step_counter + length
         ]
 
-    def generate_disturbance_profile(self) -> npt.NDArray[np.floating]:
+    def generate_disturbance_profile(
+        self, initial_day: int | None = None
+    ) -> npt.NDArray[np.floating]:
         """Returns the disturbance profile.
+
+        Parameters
+        ----------
+        initial_day : int | None
+            The day to start the disturbance profile from. If none, a random
+            day is chosen from the viable starting days.
 
         Returns
         -------
         np.ndarray
             The disturbance profile."""
-        if self.disturbance_type == "noisy":
-            raise NotImplementedError("This method is not implemented.")
-        elif self.disturbance_type == "multiple":
-            initial_day = self.np_random.choice(
-                self.TEST_VIABLE_STARTING_IDX
-                if self.testing
-                else self.TRAIN_VIABLE_STARTING_IDX
-            )
-            return self.pick_disturbance(
-                initial_day, self.growing_days + 1
-            )  # one extra day in the disturbance profile for the MPC prediction horizon
-        else:
-            raise ValueError("Invalid disturbance type.")
+        if initial_day is None:
+            if self.disturbance_type == "noisy":
+                raise NotImplementedError("This method is not implemented.")
+            elif self.disturbance_type == "multiple":
+                initial_day = self.np_random.choice(
+                    self.TEST_VIABLE_STARTING_IDX
+                    if self.testing
+                    else self.TRAIN_VIABLE_STARTING_IDX
+                )
+            else:
+                raise ValueError("Invalid disturbance type.")
+        return self.pick_disturbance(
+            initial_day, self.growing_days + 1
+        )  # one extra day in the disturbance profile for the MPC prediction horizon
 
     def pick_disturbance(
         self, initial_day: int, num_days: int
