@@ -76,10 +76,24 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                 ode,
                 0.0,
                 self.ts,
-                {"abstol": 1e-8, "reltol": 1e-8, "linear_solver": "ma27"},
+                {"abstol": 1e-8, "reltol": 1e-8},
             )
             xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
-            self.dynamics = cs.Function("dynamics", [x, u, d], [xf])
+            dynamics_cvodes = cs.Function("dynamics", [x, u, d], [xf])
+            dynamics_rk4_fallback = cs.Function(
+                "dynamics_fallback",
+                [x, u, d],
+                [Model.rk4_step(x, u, d, self.p, self.ts, steps_per_ts=50)],
+            )
+
+            def _dynamics(x, u, d):
+                try:
+                    return dynamics_cvodes(x, u, d)
+                except RuntimeError:
+                    return dynamics_rk4_fallback(x, u, d)
+
+            self.dynamics = _dynamics
+
         elif model_type == "rk4":
             self.dynamics = lambda x, u, d: Model.rk4_step(x, u, d, self.p, self.ts)
         elif model_type == "euler":
