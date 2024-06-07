@@ -212,12 +212,16 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         cost -= self.c_dy * (y[0] - self.previous_lettuce_yield)
 
         # penalize constraint violations
-        cost += np.dot(self.w_y, np.maximum(0, (y_min - y)/(y_max - y_min))).item()
-        cost += np.dot(self.w_y, np.maximum(0, (y - y_max)/(y_max - y_min))).item()
+        cost += np.dot(self.w_y, np.maximum(0, (y_min - y) / (y_max - y_min))).item()
+        cost += np.dot(self.w_y, np.maximum(0, (y - y_max) / (y_max - y_min))).item()
         if self.step_counter > 0:
             cost += np.dot(
                 self.w_du,
-                np.maximum(0, (np.abs(action - self.previous_action) - self.du_lim)/(self.du_lim)),
+                np.maximum(
+                    0,
+                    (np.abs(action - self.previous_action) - self.du_lim)
+                    / (self.du_lim),
+                ),
             )
 
         # reward final yield

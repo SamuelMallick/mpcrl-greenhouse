@@ -106,8 +106,20 @@ class LearningMpc(Mpc[cs.SX]):
             # output constraints
             y_min_k = self.parameter(f"y_min_{k}", (nx, 1))
             y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
-            self.constraint(f"y_min_{k}", y[k], ">=", (1 + olb) * y_min_k - cs.dot((1 + oub) * y_max_k - (1 + olb) * y_min_k, s[:, k]))
-            self.constraint(f"y_max_{k}", y[k], "<=", (1 + oub) * y_max_k + cs.dot((1 + oub) * y_max_k - (1 + olb) * y_min_k, s[:, k]))
+            self.constraint(
+                f"y_min_{k}",
+                y[k],
+                ">=",
+                (1 + olb) * y_min_k
+                - cs.dot((1 + oub) * y_max_k - (1 + olb) * y_min_k, s[:, k]),
+            )
+            self.constraint(
+                f"y_max_{k}",
+                y[k],
+                "<=",
+                (1 + oub) * y_max_k
+                + cs.dot((1 + oub) * y_max_k - (1 + olb) * y_min_k, s[:, k]),
+            )
 
         for k in range(1, N):
             # control variation constraints
