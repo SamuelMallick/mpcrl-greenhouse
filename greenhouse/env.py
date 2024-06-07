@@ -28,7 +28,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         growing_days: int,
         model_type: Literal["continuous", "rk4", "euler"],
         cost_parameters_dict: dict = {},
-        disturbance_type: Literal["noisy", "multiple"] = "multiple",
+        disturbance_type: Literal["noisy", "multiple", "single"] = "multiple",
         testing: bool = False,
     ) -> None:
         """Initializes the environment.

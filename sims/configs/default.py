@@ -14,6 +14,8 @@ class Test:
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 50
+    disturbance_type: Literal["noisy", "multiple", "single"] = "single"
+    initial_day: int | None = 0 if disturbance_type == "single" else None
 
     # mpc and model params
     base_model: Literal[

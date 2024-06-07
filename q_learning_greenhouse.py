@@ -42,7 +42,7 @@ train_env = MonitorEpisodes(
             growing_days=test.num_days,
             model_type=test.base_model,
             cost_parameters_dict=test.rl_cost,
-            disturbance_type="multiple",
+            disturbance_type=test.disturbance_type,
             testing=False,
         ),
         max_episode_steps=int(episode_len),
@@ -54,7 +54,7 @@ eval_env = MonitorEpisodes(
             growing_days=test.num_days,
             model_type=test.base_model,
             cost_parameters_dict=test.rl_cost,
-            disturbance_type="multiple",
+            disturbance_type=test.disturbance_type,
             testing=True,
         ),
         max_episode_steps=int(episode_len),
@@ -115,9 +115,20 @@ agent = Evaluate(
     eval_immediately=True,
     deterministic=True,
     raises=False,
+    env_reset_options={"initial_day": test.initial_day}
+    if test.disturbance_type == "single"
+    else {},
 )
 # evaluate train
-agent.train(env=train_env, episodes=test.num_episodes, seed=1, raises=False)
+agent.train(
+    env=train_env,
+    episodes=test.num_episodes,
+    seed=1,
+    raises=False,
+    env_reset_options={"initial_day": test.initial_day}
+    if test.disturbance_type == "single"
+    else {},
+)
 
 # extract data
 TD = agent.td_errors
