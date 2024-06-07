@@ -148,10 +148,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.observation_space.seed(seed)
         self.action_space.seed(seed)
 
-        self.x = np.array([0.0035, 0.001, 15, 0.008])  # initial condition of the system
-        self.previous_lettuce_yield = Model.output(self.x, self.p)[
-            0
-        ]  # get the initial weight (first element of output)
+        # set initial condition of the system and initial weight (first output element)
+        self.x = np.array([0.0035, 0.001, 15, 0.008])
+        self.previous_lettuce_yield = Model.output(self.x, self.p)[0]
 
         if options is not None and "initial_day" in options:
             self.disturbance_profile = self.generate_disturbance_profile(
