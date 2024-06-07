@@ -51,53 +51,53 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
         # get the true parameters of the model, and initialize a storage for disturbance
         # profiles that will be used in the environment
-        self.p = Model.get_true_parameters()
+        p = self.p = Model.get_true_parameters()
         self.disturbance_profiles_all_episodes: list[np.ndarray] = []
 
         # define the observation and action space
-        self.observation_space = Box(
-            np.asarray([0.0, 0.0, -273.15, 0.0]), np.inf, (self.nx,), np.float64
-        )
+        lbx = np.asarray([0.0, 0.0, -273.15, 0.0])
+        self.observation_space = Box(lbx, np.inf, (self.nx,), np.float64)
         self.action_space = Box(
             Model.get_u_min(), Model.get_u_max(), (self.nu,), np.float64
         )
 
-        # define the dynamics of the environment
+        # define the dynamics of the environment - clip states to lower bound as
+        # sometimes the dynamics will produce lower values
+        ts = self.ts
+        x = cs.MX.sym("x", (self.nx, 1))
+        u = cs.MX.sym("u", (self.nu, 1))
+        d = cs.MX.sym("d", (self.nd, 1))
         if model_type == "continuous":
-            x = cs.MX.sym("x", (self.nx, 1))
-            u = cs.MX.sym("u", (self.nu, 1))
-            d = cs.MX.sym("d", (self.nd, 1))
             o = cs.vertcat(u, d)
 
-            ode = {"x": x, "p": o, "ode": Model.df(x, u, d, self.p)}
+            ode = {"x": x, "p": o, "ode": Model.df(x, u, d, p)}
             integrator = cs.integrator(
-                "env_integrator",
-                "cvodes",
-                ode,
-                0.0,
-                self.ts,
-                {"abstol": 1e-8, "reltol": 1e-8},
+                "integrator", "cvodes", ode, 0.0, ts, {"abstol": 1e-8, "reltol": 1e-8}
             )
             xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
             dynamics_cvodes = cs.Function("dynamics", [x, u, d], [xf])
             dynamics_rk4_fallback = cs.Function(
-                "dynamics_fallback",
-                [x, u, d],
-                [Model.rk4_step(x, u, d, self.p, self.ts, steps_per_ts=50)],
+                "fallback", [x, u, d], [Model.rk4_step(x, u, d, p, ts, steps_per_ts=50)]
             )
 
-            def _dynamics(x, u, d):
+            def inner_dynamics(x, u, d):
                 try:
                     return dynamics_cvodes(x, u, d)
                 except RuntimeError:
                     return dynamics_rk4_fallback(x, u, d)
 
-            self.dynamics = _dynamics
-
         elif model_type == "rk4":
-            self.dynamics = lambda x, u, d: Model.rk4_step(x, u, d, self.p, self.ts)
+            xf = Model.rk4_step(x, u, d, p, self.ts)
+            inner_dynamics = cs.Function("dynamics", [x, u, d], [xf])
         elif model_type == "euler":
-            self.dynamics = lambda x, u, d: Model.euler_step(x, u, d, self.p, self.ts)
+            xf = Model.euler_step(x, u, d, p, self.ts)
+            inner_dynamics = cs.Function("dynamics", [x, u, d], [xf])
+
+        def dynamics(x, u, d):
+            x_new = np.asarray(inner_dynamics(x, u, d)).reshape(self.nx)
+            return np.maximum(np.asarray(x_new).reshape(self.nx), lbx)
+
+        self.dynamics = dynamics
 
         self.c_u = cost_parameters_dict.get(
             "c_u", np.array([10, 1, 1])
@@ -148,10 +148,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.observation_space.seed(seed)
         self.action_space.seed(seed)
 
-        self.x = np.array([0.0035, 0.001, 15, 0.008])  # initial condition of the system
-        self.previous_lettuce_yield = Model.output(self.x, self.p)[
-            0
-        ]  # get the initial weight (first element of output)
+        # set initial condition of the system and initial weight (first output element)
+        self.x = np.array([0.0035, 0.001, 15, 0.008])
+        self.previous_lettuce_yield = Model.output(self.x, self.p)[0]
 
         if options is not None and "initial_day" in options:
             self.disturbance_profile = self.generate_disturbance_profile(
@@ -181,7 +180,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.previous_action = np.zeros(self.nu)
         assert self.observation_space.contains(self.x) and self.action_space.contains(
             self.previous_action
-        ), "Invalid state and action in `reset`."
+        ), f"Invalid state or action in `reset`: {self.x}, {self.previous_action}."
         return self.x, {}
 
     def get_stage_cost(
@@ -245,20 +244,22 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         tuple
             The new state of the environment, the reward, whether the episode is truncated, whether the episode is terminated, and an empty dictionary.
         """
-        action = np.asarray(action).reshape(self.nu)
-        assert self.action_space.contains(action), "Invalid action in `step`."
-        r = float(self.get_stage_cost(self.x, action))
-        self.previous_lettuce_yield = Model.output(self.x, self.p)[
-            0
-        ]  # update the previous lettuce yield
-        self.x = np.asarray(
-            self.dynamics(self.x, action, self.current_disturbance)
-        ).reshape(self.nx)
-        assert self.observation_space.contains(self.x), "Invalid next state in `step`."
+        u = np.asarray(action).reshape(self.nu)
+        assert self.action_space.contains(u), f"Invalid action in `step`: {u}."
+        x = self.x
+        r = float(self.get_stage_cost(x, u))
+        d = self.current_disturbance
+        x_new = np.asarray(self.dynamics(x, u, d)).reshape(self.nx)
+        assert self.observation_space.contains(
+            x_new
+        ), f"Invalid next state in `step` {x_new}."
+
+        self.previous_lettuce_yield = Model.output(x, self.p)[0]
+        self.previous_action = u
+        self.x = x_new.copy()
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
-        self.previous_action = action
-        return self.x, r, truncated, False, {}
+        return x_new, r, truncated, False, {}
 
     def get_current_disturbance(self, length: int) -> npt.NDArray[np.floating]:
         """Returns the disturbance profile for a certain length starting from the current time step.
