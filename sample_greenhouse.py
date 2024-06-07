@@ -33,7 +33,7 @@ env = MonitorEpisodes(
     )
 )
 num_episodes = 1
-initial_day = 0
+initial_days = list(range(20))
 
 multistarts = 1
 num_samples = 20
@@ -44,7 +44,7 @@ sample_mpc = SampleBasedMpc(
     cost_parameters_dict={
         "c_u": np.array([10, 1, 1]),
         "c_y": 1e3,
-        "w_y": 1e3 * np.ones(4),
+        "w_y": 1e4 * np.ones(4),
     },  # MPC cost tuned from 2022 paper
     prediction_model=prediction_model,
     multistarts=multistarts,
@@ -65,31 +65,31 @@ agent = Log(
     to_file=True,
     log_name=f"log_sample_{num_samples}_{multistarts}_{prediction_model}",
 )
-agent.evaluate(
-    env=env,
-    episodes=num_episodes,
-    seed=1,
-    raises=False,
-    env_reset_options={"initial_day": initial_day},
-)
 
-# extract data
-X = np.asarray(env.observations)
-U = np.asarray(env.actions).squeeze(-1)
-R = np.asarray(env.rewards)
-d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
+for initial_day in initial_days:
+    agent.evaluate(
+        env=env,
+        episodes=num_episodes,
+        seed=1,
+        raises=False,
+        env_reset_options={"initial_day": initial_day},
+    )
 
-print(f"Return = {R.sum(axis=1)}")
+    # extract data
+    X = np.asarray(env.observations)
+    U = np.asarray(env.actions).squeeze(-1)
+    R = np.asarray(env.rewards)
+    d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
 
-if PLOT:
-    plot_greenhouse(X, U, d, R, None)
+    print(f"Return = {R.sum(axis=1)}")
 
-identifier = (
-    f"sample_greenhouse_{prediction_model}_{num_samples}_{multistarts}_{initial_day}"
-)
-if STORE_DATA:
-    with open(
-        identifier + ".pkl",
-        "wb",
-    ) as file:
-        pickle.dump({"X": X, "U": U, "R": R, "d": d}, file)
+    if PLOT:
+        plot_greenhouse(X, U, d, R, None)
+
+    identifier = f"sample_greenhouse_{prediction_model}_{num_samples}_{multistarts}_{initial_day}"
+    if STORE_DATA:
+        with open(
+            identifier + ".pkl",
+            "wb",
+        ) as file:
+            pickle.dump({"X": X, "U": U, "R": R, "d": d}, file)

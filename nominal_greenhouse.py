@@ -16,9 +16,9 @@ from utils.plot import plot_greenhouse
 np_random = np.random.default_rng(1)
 
 STORE_DATA = True
-PLOT = True
+PLOT = False
 
-days = 1
+days = 40
 episode_len = days * LettuceGreenHouse.steps_per_day  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
@@ -32,16 +32,16 @@ env = MonitorEpisodes(
     )
 )
 num_episodes = 1
-initial_day = 0
+initial_days = list(range(20))
 
 prediction_model: Literal["euler", "rk4"] = "rk4"
-correct_model = False
+correct_model = True
 mpc = NominalMpc(
     greenhouse_env=env,
     cost_parameters_dict={
         "c_u": np.array([10, 1, 1]),
         "c_y": 1e3,
-        "w_y": 1e3 * np.ones(4),
+        "w_y": 1e4 * np.ones(4),
     },  # MPC cost tuned from 2022 paper
     prediction_model=prediction_model,
     correct_model=correct_model,
@@ -55,29 +55,31 @@ agent = Log(
     to_file=True,
     log_name=f"nominal_greenhouse_{prediction_model}_{correct_model}",
 )
-agent.evaluate(
-    env=env,
-    episodes=num_episodes,
-    seed=1,
-    raises=False,
-    env_reset_options={"initial_day": initial_day},
-)
 
-# extract data
-X = np.asarray(env.observations)
-U = np.asarray(env.actions).squeeze(-1)
-R = np.asarray(env.rewards)
-d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
+for initial_day in initial_days:
+    agent.evaluate(
+        env=env,
+        episodes=num_episodes,
+        seed=1,
+        raises=False,
+        env_reset_options={"initial_day": initial_day},
+    )
 
-print(f"Return = {R.sum(axis=1)}")
+    # extract data
+    X = np.asarray(env.observations)
+    U = np.asarray(env.actions).squeeze(-1)
+    R = np.asarray(env.rewards)
+    d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
 
-if PLOT:
-    plot_greenhouse(X, U, d, R, None)
+    print(f"Return = {R.sum(axis=1)}")
 
-identifier = f"nominal_greenhouse_{prediction_model}_{correct_model}_{initial_day}"
-if STORE_DATA:
-    with open(
-        identifier + ".pkl",
-        "wb",
-    ) as file:
-        pickle.dump({"X": X, "U": U, "R": R, "d": d}, file)
+    if PLOT:
+        plot_greenhouse(X, U, d, R, None)
+
+    identifier = f"nominal_greenhouse_{prediction_model}_{correct_model}_{initial_day}"
+    if STORE_DATA:
+        with open(
+            identifier + ".pkl",
+            "wb",
+        ) as file:
+            pickle.dump({"X": X, "U": U, "R": R, "d": d}, file)
