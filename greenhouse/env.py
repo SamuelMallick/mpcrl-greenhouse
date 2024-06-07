@@ -181,7 +181,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.previous_action = np.zeros(self.nu)
         assert self.observation_space.contains(self.x) and self.action_space.contains(
             self.previous_action
-        ), "Invalid state and action in `reset`."
+        ), f"Invalid state or action in `reset`: {self.x}, {self.previous_action}."
         return self.x, {}
 
     def get_stage_cost(
@@ -241,20 +241,22 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         tuple
             The new state of the environment, the reward, whether the episode is truncated, whether the episode is terminated, and an empty dictionary.
         """
-        action = np.asarray(action).reshape(self.nu)
-        assert self.action_space.contains(action), "Invalid action in `step`."
-        r = float(self.get_stage_cost(self.x, action))
-        self.previous_lettuce_yield = Model.output(self.x, self.p)[
-            0
-        ]  # update the previous lettuce yield
-        self.x = np.asarray(
-            self.dynamics(self.x, action, self.current_disturbance)
-        ).reshape(self.nx)
-        assert self.observation_space.contains(self.x), "Invalid next state in `step`."
+        u = np.asarray(action).reshape(self.nu)
+        assert self.action_space.contains(u), f"Invalid action in `step`: {u}."
+        x = self.x
+        r = float(self.get_stage_cost(x, u))
+        d = self.current_disturbance
+        x_new = np.asarray(self.dynamics(x, u, d)).reshape(self.nx)
+        assert self.observation_space.contains(
+            x_new
+        ), f"Invalid next state in `step` {x_new}."
+
+        self.previous_lettuce_yield = Model.output(x, self.p)[0]
+        self.previous_action = u
+        self.x = x_new.copy()
         truncated = self.step_counter == self.yield_step
         self.step_counter += 1
-        self.previous_action = action
-        return self.x, r, truncated, False, {}
+        return x_new, r, truncated, False, {}
 
     def get_current_disturbance(self, length: int) -> npt.NDArray[np.floating]:
         """Returns the disturbance profile for a certain length starting from the current time step.
