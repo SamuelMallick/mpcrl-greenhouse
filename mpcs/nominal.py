@@ -115,21 +115,21 @@ class NominalMpc(Mpc[cs.SX]):
         # solver
         opts = {
             "expand": True,
-            "show_eval_warnings": True,
+            "show_eval_warnings": False,
             "warn_initial_bounds": True,
             "print_time": False,
             "bound_consistency": True,
             "calc_lam_x": True,
             "calc_lam_p": False,
-            # "jit": True,
-            # "jit_cleanup": True,
             "ipopt": {
-                # "linear_solver": "ma97",
-                # "linear_system_scaling": "mc19",
-                # "nlp_scaling_method": "equilibration-based",
-                "max_iter": 500,
                 "sb": "yes",
                 "print_level": 0,
+                "max_iter": 2000,
+                "print_user_options": "yes",
+                "print_options_documentation": "no",
+                "linear_solver": "ma57",  # spral
+                "nlp_scaling_method": "gradient-based",
+                "nlp_scaling_max_gradient": 10,
             },
         }
         self.init_solver(opts, solver="ipopt")
