@@ -85,7 +85,9 @@ def store_data(
 
 if __name__ == "__main__":
     # launch training
-    simulations = do_training(episodes=1000, days_per_episode=40, n_agents=1, seed=1)
+    simulations = do_training(
+        episodes=2000, days_per_episode=40, n_agents=1, seed=1, devices="cpu"
+    )
 
     # process and plot or store data
     PLOT = False
