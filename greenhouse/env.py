@@ -51,53 +51,53 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
         # get the true parameters of the model, and initialize a storage for disturbance
         # profiles that will be used in the environment
-        self.p = Model.get_true_parameters()
+        p = self.p = Model.get_true_parameters()
         self.disturbance_profiles_all_episodes: list[np.ndarray] = []
 
         # define the observation and action space
-        self.observation_space = Box(
-            np.asarray([0.0, 0.0, -273.15, 0.0]), np.inf, (self.nx,), np.float64
-        )
+        lbx = np.asarray([0.0, 0.0, -273.15, 0.0])
+        self.observation_space = Box(lbx, np.inf, (self.nx,), np.float64)
         self.action_space = Box(
             Model.get_u_min(), Model.get_u_max(), (self.nu,), np.float64
         )
 
-        # define the dynamics of the environment
+        # define the dynamics of the environment - clip states to lower bound as
+        # sometimes the dynamics will produce lower values
+        ts = self.ts
+        x = cs.MX.sym("x", (self.nx, 1))
+        u = cs.MX.sym("u", (self.nu, 1))
+        d = cs.MX.sym("d", (self.nd, 1))
         if model_type == "continuous":
-            x = cs.MX.sym("x", (self.nx, 1))
-            u = cs.MX.sym("u", (self.nu, 1))
-            d = cs.MX.sym("d", (self.nd, 1))
             o = cs.vertcat(u, d)
 
-            ode = {"x": x, "p": o, "ode": Model.df(x, u, d, self.p)}
+            ode = {"x": x, "p": o, "ode": Model.df(x, u, d, p)}
             integrator = cs.integrator(
-                "env_integrator",
-                "cvodes",
-                ode,
-                0.0,
-                self.ts,
-                {"abstol": 1e-8, "reltol": 1e-8},
+                "integrator", "cvodes", ode, 0.0, ts, {"abstol": 1e-8, "reltol": 1e-8}
             )
             xf = integrator(x0=x, p=cs.vertcat(u, d))["xf"]
             dynamics_cvodes = cs.Function("dynamics", [x, u, d], [xf])
             dynamics_rk4_fallback = cs.Function(
-                "dynamics_fallback",
-                [x, u, d],
-                [Model.rk4_step(x, u, d, self.p, self.ts, steps_per_ts=50)],
+                "fallback", [x, u, d], [Model.rk4_step(x, u, d, p, ts, steps_per_ts=50)]
             )
 
-            def _dynamics(x, u, d):
+            def inner_dynamics(x, u, d):
                 try:
                     return dynamics_cvodes(x, u, d)
                 except RuntimeError:
                     return dynamics_rk4_fallback(x, u, d)
 
-            self.dynamics = _dynamics
-
         elif model_type == "rk4":
-            self.dynamics = lambda x, u, d: Model.rk4_step(x, u, d, self.p, self.ts)
+            xf = Model.rk4_step(x, u, d, p, self.ts)
+            inner_dynamics = cs.Function("dynamics", [x, u, d], [xf])
         elif model_type == "euler":
-            self.dynamics = lambda x, u, d: Model.euler_step(x, u, d, self.p, self.ts)
+            xf = Model.euler_step(x, u, d, p, self.ts)
+            inner_dynamics = cs.Function("dynamics", [x, u, d], [xf])
+
+        def dynamics(x, u, d):
+            x_new = np.asarray(inner_dynamics(x, u, d)).reshape(self.nx)
+            return np.maximum(np.asarray(x_new).reshape(self.nx), lbx)
+
+        self.dynamics = dynamics
 
         self.c_u = cost_parameters_dict.get(
             "c_u", np.array([10, 1, 1])
