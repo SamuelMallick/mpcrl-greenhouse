@@ -10,11 +10,11 @@ from greenhouse.model import Model
 
 class Test:
     # simulation and training params
-    test_ID = "default"
+    test_ID = "test_29"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
-    num_episodes = 50
-    disturbance_type: Literal["noisy", "multiple", "single"] = "single"
+    num_episodes = 100
+    disturbance_type: Literal["noisy", "multiple", "single"] = "multiple"
     initial_day: int | None = 0 if disturbance_type == "single" else None
 
     # mpc and model params
@@ -58,10 +58,10 @@ class Test:
         learning_rate=ExponentialScheduler(learning_rate, factor=1)
     )
     exploration = EpsilonGreedyExploration(
-        epsilon=ExponentialScheduler(0.5, factor=0.9),
+        epsilon=ExponentialScheduler(0.5, factor=0.93),
         hook="on_episode_end",
         strength=0.1 * np.array([[1.2], [7.5], [150]]),
-        mode="additive",
+        mode="gradient-based",
     )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,

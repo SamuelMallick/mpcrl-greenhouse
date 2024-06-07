@@ -10,11 +10,11 @@ from greenhouse.model import Model
 
 class Test:
     # simulation and training params
-    test_ID = "default"
+    test_ID = "test_31"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
-    num_episodes = 50
-    disturbance_type: Literal["noisy", "multiple", "single"] = "single"
+    num_episodes = 100
+    disturbance_type: Literal["noisy", "multiple", "single"] = "multiple"
     initial_day: int | None = 0 if disturbance_type == "single" else None
 
     # mpc and model params
@@ -24,7 +24,7 @@ class Test:
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 0.99
-    rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w": 1e4 * np.ones((1, 4))}
+    rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w": 1e3 * np.ones((1, 4))}
     p_perturb = list(range(Model.n_params))  # index of parameters that are perturbed
 
     # learning params
@@ -57,12 +57,7 @@ class Test:
     optimizer = optim.NetwonMethod(
         learning_rate=ExponentialScheduler(learning_rate, factor=1)
     )
-    exploration = EpsilonGreedyExploration(
-        epsilon=ExponentialScheduler(0.5, factor=0.9),
-        hook="on_episode_end",
-        strength=0.1 * np.array([[1.2], [7.5], [150]]),
-        mode="additive",
-    )
+    exploration = None
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
         sample_size=2 * ep_len,

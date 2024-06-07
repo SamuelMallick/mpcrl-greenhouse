@@ -27,7 +27,7 @@ PLOT = True
 # if a config file passed on command line, otherwise use default config file
 if len(sys.argv) > 1:
     config_file = sys.argv[1]
-    mod = importlib.import_module(f"test_configs.{config_file}")
+    mod = importlib.import_module(f"sims.configs.{config_file}")
     test = mod.Test()
 else:
     from sims.configs.default import Test  # type: ignore
