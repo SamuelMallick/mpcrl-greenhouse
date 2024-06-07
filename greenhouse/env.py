@@ -107,7 +107,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             "c_dy", 100.0
         )  # reward on step-wise lettuce yield
         self.w_y = cost_parameters_dict.get(
-            "w_y", np.full(self.nx, 1e3)
+            "w_y", np.full(self.nx, 1e4)
         )  # penatly on constraint violations
         self.w_du = cost_parameters_dict.get(
             "w_du", np.full(self.nu, 1e3)
@@ -211,12 +211,12 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         cost -= self.c_dy * (y[0] - self.previous_lettuce_yield)
 
         # penalize constraint violations
-        cost += np.dot(self.w_y, np.maximum(0, y_min - y)).item()
-        cost += np.dot(self.w_y, np.maximum(0, y - y_max)).item()
+        cost += np.dot(self.w_y, np.maximum(0, (y_min - y)/(y_max - y_min))).item()
+        cost += np.dot(self.w_y, np.maximum(0, (y - y_max)/(y_max - y_min))).item()
         if self.step_counter > 0:
             cost += np.dot(
                 self.w_du,
-                np.maximum(0, np.abs(action - self.previous_action) - self.du_lim),
+                np.maximum(0, (np.abs(action - self.previous_action) - self.du_lim)/(self.du_lim)),
             )
 
         # reward final yield
