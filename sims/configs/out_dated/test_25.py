@@ -8,15 +8,15 @@ from mpcrl.core.schedulers import ExponentialScheduler
 
 class Test:
     # simulation and training params
-    test_ID = "test_20"
+    test_ID = "test_25"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
 
     # mpc and model params
-    base_model: Literal["nonlinear", "rk4", "euler"] = (
-        "rk4"  # underlying simulation model
-    )
+    base_model: Literal[
+        "nonlinear", "rk4", "euler"
+    ] = "nonlinear"  # underlying simulation model
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 1

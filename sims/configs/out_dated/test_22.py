@@ -8,21 +8,21 @@ from mpcrl.core.schedulers import ExponentialScheduler
 
 class Test:
     # simulation and training params
-    test_ID = "test_19"
+    test_ID = "test_22"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
-    num_episodes = 50
+    num_episodes = 100
 
     # mpc and model params
-    base_model: Literal["nonlinear", "rk4", "euler"] = (
-        "rk4"  # underlying simulation model
-    )
+    base_model: Literal[
+        "nonlinear", "rk4", "euler"
+    ] = "rk4"  # underlying simulation model
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 1
     rl_cost = {"c_u": [0, 0, 0], "c_y": 0, "c_dy": 100, "w": 1e3 * np.ones((1, 4))}
     p_perturb: list = [i for i in range(28)]  # index of parameters that are perturbed
-    perturb = 0.1
+    perturb = 0.2
 
     # learning params
     p_learn = [i for i in range(28)]  # index of parameters to learn
@@ -50,14 +50,14 @@ class Test:
     }
 
     update_strategy = UpdateStrategy(1, hook="on_episode_end")
-    learning_rate = 1e-2
+    learning_rate = 5e-3
     optimizer = optim.NetwonMethod(
         learning_rate=ExponentialScheduler(learning_rate, factor=1)
     )
     exploration = EpsilonGreedyExploration(
-        epsilon=ExponentialScheduler(0.9, factor=0.9),
+        epsilon=ExponentialScheduler(0.5, factor=0.9),
         hook="on_episode_end",
-        strength=0.5 * np.array([[1.2], [7.5], [150]]),
+        strength=0.1 * np.array([[1.2], [7.5], [150]]),
     )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
