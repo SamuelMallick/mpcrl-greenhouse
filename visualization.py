@@ -64,19 +64,15 @@ if "TD" in data:
 X = data["X"]
 d = data["d"]
 # generate output data from state data X
-y = np.empty((X.shape[0], X.shape[1] - 1, X.shape[2]), dtype=X.dtype)
-y_min = y.copy()
+y = Model.output(X[:, :-1].transpose(2, 0, 1), p).transpose(1, 2, 0)
+y_min = np.empty((X.shape[0], X.shape[1] - 1, y.shape[2]), dtype=X.dtype)
 y_max = y.copy()
-viols = y.copy()
-for i in range(X.shape[0]):
-    for j in range(X.shape[1] - 1):
-        y[i, j, :] = Model.output(X[i, j, :], p)
-        y_min[i, j, :] = Model.get_output_min(d[i, j, :])
-        y_max[i, j, :] = Model.get_output_max(d[i, j, :])
-        viols[i, j, :] = np.maximum(
-            np.maximum(y_min[i, j, :] - y[i, j, :], 0),
-            np.maximum(y[i, j, :] - y_max[i, j, :], 0),
-        )
+for i, j in product(range(X.shape[0]), range(X.shape[1] - 1)):
+    if i % 100 == 0 and j == 0:
+        print(f"Calculating constraint violations for episode {i} timestep {j}")
+    y_min[i, j, :] = Model.get_output_min(d[i, j, :])
+    y_max[i, j, :] = Model.get_output_max(d[i, j, :])
+viols = np.maximum(np.maximum(y_min - y, 0), np.maximum(y - y_max, 0))
 
 # plot constraint violations
 t_axs[VIOL_indx].plot(
