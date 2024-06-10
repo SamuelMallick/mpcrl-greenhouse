@@ -106,19 +106,20 @@ class LearningMpc(Mpc[cs.SX]):
             # output constraints
             y_min_k = self.parameter(f"y_min_{k}", (nx, 1))
             y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
+            # dividing by the range here instead of in the objective as the y_min_k and y_max_k are calcualted here
             self.constraint(
                 f"y_min_{k}",
                 y[k],
                 ">=",
                 (1 + olb) * y_min_k
-                - cs.dot((1 + oub) * y_max_k - (1 + olb) * y_min_k, s[:, k]),
+                - s[:, k]/((1 + oub) * y_max_k - (1 + olb) * y_min_k)
             )
             self.constraint(
                 f"y_max_{k}",
                 y[k],
                 "<=",
                 (1 + oub) * y_max_k
-                + cs.dot((1 + oub) * y_max_k - (1 + olb) * y_min_k, s[:, k]),
+                + s[:, k]/((1 + oub) * y_max_k - (1 + olb) * y_min_k)
             )
 
         for k in range(1, N):

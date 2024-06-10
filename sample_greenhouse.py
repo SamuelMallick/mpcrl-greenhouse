@@ -44,7 +44,7 @@ sample_mpc = SampleBasedMpc(
     cost_parameters_dict={
         "c_u": np.array([10, 1, 1]),
         "c_y": 1e3,
-        "w_y": 1e4 * np.ones(4),
+        "w_y": 1e5 * np.ones(4),
     },  # MPC cost tuned from 2022 paper
     prediction_model=prediction_model,
     multistarts=multistarts,

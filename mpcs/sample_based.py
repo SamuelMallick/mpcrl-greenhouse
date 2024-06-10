@@ -110,17 +110,18 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             y_max_k = self.parameter(f"y_max_{k}", (nx, 1))
             for i in range(n_samples):
                 y_k = Model.output(xs[i][:, k], p[i])
+                # dividing by the range here instead of in the objective as the y_min_k and y_max_k are calcualted here
                 self.constraint(
                     _n(f"y_min_{k}", i),
                     y_k,
                     ">=",
-                    y_min_k - cs.dot((y_max_k - y_min_k), s[i][:, k]),
+                    y_min_k - s[i][:, k]/(y_max_k - y_min_k)
                 )
                 self.constraint(
                     _n(f"y_max_{k}", i),
                     y_k,
                     "<=",
-                    y_max_k + cs.dot((y_max_k - y_min_k), s[i][:, k]),
+                    y_max_k + s[i][:, k]/(y_max_k - y_min_k)
                 )
 
         for k in range(1, N):

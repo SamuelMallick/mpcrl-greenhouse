@@ -107,10 +107,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             "c_dy", 100.0
         )  # reward on step-wise lettuce yield
         self.w_y = cost_parameters_dict.get(
-            "w_y", np.full(self.nx, 1e4)
+            "w_y", np.full(self.nx, 1e5)
         )  # penatly on constraint violations
         self.w_du = cost_parameters_dict.get(
-            "w_du", np.full(self.nu, 1e3)
+            "w_du", np.full(self.nu, 1e5)
         )  # penatly on control variation constraint violations
 
         self.yield_step = (
