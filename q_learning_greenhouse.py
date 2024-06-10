@@ -162,6 +162,7 @@ if STORE_DATA:
     ) as file:
         pickle.dump(
             {
+                "name": identifier_tr,
                 "X": X_tr,
                 "U": U_tr,
                 "R": R_tr,
@@ -175,4 +176,4 @@ if STORE_DATA:
         f"{identifier_ev}.pkl",
         "wb",
     ) as file:
-        pickle.dump({"X": X_ev, "U": U_ev, "R": R_ev, "d": d_ev}, file)
+        pickle.dump({"name": identifier_ev, "X": X_ev, "U": U_ev, "R": R_ev, "d": d_ev}, file)

@@ -1,5 +1,6 @@
 import pickle
-from typing import Collection, Iterator, Literal, Union
+from collections.abc import Collection, Iterator
+from typing import Literal
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -14,7 +15,7 @@ def do_training(
     days_per_episode: int,
     n_agents: int = 1,
     seed: int | None = None,
-    devices: Union[str, Collection[str]] = "auto",
+    devices: str | Collection[str] = "auto",
 ) -> Iterator[tuple[MonitorEpisodes, MonitorEpisodes]]:
     """Launches the training of `n_agents` DDPG agents in parallel."""
     if isinstance(devices, str):
@@ -79,8 +80,9 @@ def store_data(
         D = data[env_type]["D"]
         R = data[env_type]["R"]
         for i in range(X.shape[0]):
-            with open(f"{identifier}_{env_type}_{i}.pkl", "wb") as file:
-                pickle.dump({"X": X[i], "U": U[i], "d": D[i], "R": R[i]}, file)
+            fn = f"{identifier}_{env_type}_{i}"
+            with open(f"{fn}.pkl", "wb") as file:
+                pickle.dump({"name": fn, "X": X[i], "U": U[i], "d": D[i], "R": R[i]}, file)
 
 
 if __name__ == "__main__":

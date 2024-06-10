@@ -82,4 +82,4 @@ for initial_day in initial_days:
             identifier + ".pkl",
             "wb",
         ) as file:
-            pickle.dump({"X": X, "U": U, "R": R, "d": d}, file)
+            pickle.dump({"name": identifier, "X": X, "U": U, "R": R, "d": d}, file)
