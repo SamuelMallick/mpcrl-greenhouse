@@ -23,7 +23,7 @@ class Test:
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 0.99
-    rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w": 1e4 * np.ones((1, 4))}
+    rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w": 1e5 * np.ones((1, 4))}
     p_perturb = list(range(Model.n_params))  # index of parameters that are perturbed
 
     # learning params
