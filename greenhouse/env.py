@@ -29,7 +29,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         model_type: Literal["continuous", "rk4", "euler"],
         cost_parameters_dict: dict = {},
         disturbance_type: Literal["noisy", "multiple", "single"] = "multiple",
-        testing: bool = False,
+        testing: Literal["none", "random", "deterministic"] = "none",
     ) -> None:
         """Initializes the environment.
 
@@ -44,8 +44,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         disturbance_type : str
             The type of disturbances used. "noisy" uses one disturbance profile for every episode with noise added.
             "multiple" uses one of a subset of deterministic disturbance profiles for each episode.
-        testing : bool
-            Whether the environment is in testing mode. Otherwise training mode.
+        testing : "none", "random", "deterministic"
+            Whether the disturbances used in the env are drawn from the training or testing set.
+            If "none", the training disturbances are used. If "random", testing disturbances are drawn randomly.
+            If "deterministic", testing disturbances are drawn deterministically.
         """
         super().__init__()
 
@@ -119,6 +121,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.growing_days = growing_days
         self.disturbance_type = disturbance_type
         self.testing = testing
+        self._testing_counter = 0  # for deterministic testing
 
     @property
     def current_disturbance(self) -> npt.NDArray[np.floating]:
@@ -296,11 +299,15 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             if self.disturbance_type == "noisy":
                 raise NotImplementedError("This method is not implemented.")
             elif self.disturbance_type == "multiple":
-                initial_day = self.np_random.choice(
-                    self.TEST_VIABLE_STARTING_IDX
-                    if self.testing
-                    else self.TRAIN_VIABLE_STARTING_IDX
-                )
+                if self.testing == "none":
+                    initial_day = self.np_random.choice(self.TRAIN_VIABLE_STARTING_IDX)
+                elif self.testing == "random":
+                    initial_day = self.np_random.choice(self.TEST_VIABLE_STARTING_IDX)
+                else:  # deterministic
+                    initial_day = self.TEST_VIABLE_STARTING_IDX[
+                        self._testing_counter % len(self.TEST_VIABLE_STARTING_IDX)
+                    ]
+                    self._testing_counter += 1
             else:
                 raise ValueError("Invalid disturbance type.")
         return self.pick_disturbance(
