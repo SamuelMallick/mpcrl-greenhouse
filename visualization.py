@@ -14,8 +14,9 @@ ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 seconds_in_time_step = 15 * 60
 nx = 4
 nu = 3
-file_name = "results/nominal/nominal_greenhouse_rk4_False.pkl"
-# file_name = "results/sample/sample_greenhouse_rk4_2_1.pkl"
+# file_name = "nominal_greenhouse_rk4_True_0.pkl"
+# file_name = "results/sample/sample_greenhouse_rk4_20_1_0.pkl"
+file_name = "results/default_train.pkl"
 p = Model.get_true_parameters()
 
 with open(
@@ -28,12 +29,13 @@ _, t_axs = plt.subplots(
     3 if "TD" in data else 2, 1, constrained_layout=True, sharex=True
 )  # axes for plotting each timestep
 _, ep_axs = plt.subplots(
-    4 if "TD" in data else 3, 1, constrained_layout=True, sharex=True
+    5 if "TD" in data else 4, 1, constrained_layout=True, sharex=True
 )  # axes for plotting each episode
 R_indx = 0
 TD_indx = 1
 VIOL_indx = 2 if "TD" in data else 1
 EPI_indx = 3 if "TD" in data else 2
+YIELD_indx = 4 if "TD" in data else 3
 # plot environment rewards
 if "R" in data:
     R = data["R"]
@@ -54,7 +56,7 @@ if "TD" in data:
     )  # plot the reward for each timestep of all episodes
     t_axs[TD_indx].set_ylabel(r"$\delta_t$")
     ep_axs[TD_indx].plot(
-        np.sum(TD, axis=1), "o", markersize=1
+        np.nansum(TD, axis=1), "o", markersize=1    # TODO replace nansum with something that captures the fact that nan is not good
     )  # plot the total reward for each episode
     ep_axs[TD_indx].set_ylabel(r"$\delta_{ep}$")
 
@@ -108,91 +110,47 @@ ep_axs[EPI_indx].plot(EPI, "o", markersize=1)  # plot the total reward for each 
 ep_axs[EPI_indx].set_ylabel("$EPI$")
 ep_axs[EPI_indx].set_xlabel("Episode")
 
-print(f"Yields: {y[:, -1, 0]}")
+# plot yields
+ep_axs[YIELD_indx].plot(y[:, -1, 0], "o", markersize=1)  # plot the total lettuce yield for each episode
+ep_axs[YIELD_indx].set_ylabel("$yield$")
 
-# # yields
-# yields = [y[(i + 1) * ep_len + i, 0] for i in range(num_episodes)]
-# _, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
-# axs[0].plot(yields, "o", markersize=1)
-# axs[0].set_ylabel(r"$yield$")
+# plot learnt parameters
+if "param_dict" in data:
+    param_dict = data["param_dict"]
+    cost_keys = [x for x in list(param_dict.keys()) if x.startswith("p") is False]
+    if len(cost_keys) > 0:
+        _, axs = plt.subplots(len(cost_keys), 1, constrained_layout=True, sharex=True)
+        if len(cost_keys) == 1:
+            axs = [axs, None]
+        for i in range(len(cost_keys)):
+            axs[i].plot(
+                [
+                    (param_dict[cost_keys[i]][j]).squeeze()
+                    for j in range(len(param_dict[cost_keys[i]]))
+                ]
+            )
+            axs[i].set_ylabel(cost_keys[i])
 
-# num_cnstr_viols = np.zeros((num_episodes, 1))
-# mag_cnstr_viols = np.zeros((num_episodes, 1))
-# for i in range(num_episodes):
-#     for k in range(ep_len):
-#         y_max = get_y_max(d[:, [i * ep_len + k]])
-#         y_min = get_y_min(d[:, [i * ep_len + k]])
-#         # extra +i index in y because it has ep_len+1 entries for each ep
-#         if any(y[[i * (ep_len + 1) + k], :].reshape(4, 1) > y_max) or any(
-#             y[[i * (ep_len + 1) + k], :].reshape(4, 1) < y_min
-#         ):
-#             num_cnstr_viols[i, :] += 1
-#             y_below = y[[i * (ep_len + 1) + k], :].reshape(4, 1) - y_min
-#             y_below[y_below > 0] = 0
-#             y_above = y_max - y[[i * (ep_len + 1) + k], :].reshape(4, 1)
-#             y_above[y_above > 0] = 0
-#             mag_cnstr_viols[i, :] += np.linalg.norm(y_above + y_below, ord=2)
-# axs[1].plot(num_cnstr_viols, "o", markersize=1)
-# axs[1].set_ylabel(r"$num cnstr viols$")
-# axs[2].plot(mag_cnstr_viols, "o", markersize=1)
-# axs[2].set_ylabel(r"$mag cnstr viols$")
+        param_keys = [x for x in list(param_dict.keys()) if x.startswith("p") is True]
+        num_figs = int(np.ceil(len(param_keys) / 5))
+        for j in range(num_figs):
+            _, axs = plt.subplots(5, 1, constrained_layout=True, sharex=True)
+            for i in range(5):
+                if 5 * j + i < len(param_keys):
+                    axs[i].plot(param_dict[param_keys[5 * j + i]])
+                    axs[i].set_ylabel(param_keys[5 * j + i])
 
-# # states and input
-# # first ep
-# # get bounds
-# y_min = np.zeros((nx, ep_len))
-# y_max = np.zeros((nx, ep_len))
-# for k in range(ep_len):
-#     y_min[:, [k]] = get_y_min(d[:, [k]])
-#     y_max[:, [k]] = get_y_max(d[:, [k]])
-# _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
-# axs[0].set_title("First ep")
-# for i in range(4):
-#     axs[i].plot(y[:ep_len, i])
-#     axs[i].plot(y_min[i, :], color="black")
-#     if i != 0:
-#         axs[i].plot(y_max[i, :], color="r")
-
-# # last ep
-# # get bounds
-# y_min = np.zeros((nx, ep_len))
-# y_max = np.zeros((nx, ep_len))
-# for k in range(ep_len):
-#     y_min[:, [k]] = get_y_min(d[:, [-ep_len + k]])
-#     y_max[:, [k]] = get_y_max(d[:, [-ep_len + k]])
-# # _, axs = plt.subplots(4, 1, constrained_layout=True, sharex=True)
-# axs[0].set_title("Last ep")
-# for i in range(4):
-#     axs[i].plot(y[-ep_len - 1 : -1, i])
-#     axs[i].plot(y_min[i, :], color="black")
-#     if i != 0:
-#         axs[i].plot(y_max[i, :], color="r")
-# # _, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
-# # for i in range(3):
-# #    axs[i].plot(U[:, i])
-
-# # parameters - first cost params
-# cost_keys = [x for x in list(param_list.keys()) if x.startswith("p") is False]
-# if len(cost_keys) > 0:
-#     _, axs = plt.subplots(len(cost_keys), 1, constrained_layout=True, sharex=True)
-#     if len(cost_keys) == 1:
-#         axs = [axs, None]
-#     for i in range(len(cost_keys)):
-#         axs[i].plot(
-#             [
-#                 (param_list[cost_keys[i]][j]).squeeze()
-#                 for j in range(len(param_list[cost_keys[i]]))
-#             ]
-#         )
-#         axs[i].set_ylabel(cost_keys[i])
-
-#     param_keys = [x for x in list(param_list.keys()) if x.startswith("p") is True]
-#     num_figs = int(np.ceil(len(param_keys) / 5))
-#     for j in range(num_figs):
-#         _, axs = plt.subplots(5, 1, constrained_layout=True, sharex=True)
-#         for i in range(5):
-#             if 5 * j + i < len(param_keys):
-#                 axs[i].plot(param_list[param_keys[5 * j + i]])
-#                 axs[i].set_ylabel(param_keys[5 * j + i])
+# plot first and last episodes
+_, axs = plt.subplots(4, 2, constrained_layout=True, sharex=True)   
+for i in range(2):
+    for j in range(nx):
+        axs[j, i].plot(y[0 if i==0 else -1, :, j])
+        if j > 0:
+            axs[j, i].plot(y_min[0 if i==0 else -1, :, j], color="black")
+            axs[j, i].plot(y_max[0 if i==0 else -1, :, j], color="r")
+axs[0, 0].set_title("First ep")
+axs[0, 1].set_title("Last ep")
+axs[-1, 0].set_xlabel("Timestep")
+axs[-1, 1].set_xlabel("Timestep")
 
 plt.show()
