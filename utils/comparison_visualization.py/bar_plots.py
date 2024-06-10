@@ -18,14 +18,14 @@ seconds_in_time_step = 15 * 60
 nx = 4
 nu = 3
 file_names = [
-    "results/nominal/nominal_greenhouse_rk4_True.pkl",
-    "results/nominal/nominal_greenhouse_rk4_False.pkl",
-    "results/sample/sample_greenhouse_rk4_2_1.pkl",
-    "results/sample/sample_greenhouse_rk4_5_1.pkl",
-    "results/sample/sample_greenhouse_rk4_10_1.pkl",
+    "results/nominal/nominal_greenhouse_rk4_True_18.pkl",
+    # "results/nominal/nominal_greenhouse_rk4_False_0.pkl",
+    "results/sample/sample_greenhouse_rk4_2_1_18.pkl",
+    # "results/sample/sample_greenhouse_rk4_5_1_0.pkl",
+    # "results/sample/sample_greenhouse_rk4_10_1_0.pkl",
+    # "results/sample/sample_greenhouse_rk4_20_1_0.pkl",
 ]
 p = Model.get_true_parameters()
-ep_num = 0
 
 data = []
 for file_name in file_names:
@@ -44,10 +44,8 @@ YIELD_indx = 2
 EPI_indx = 3
 # plot environment rewards
 R = [o["R"] for o in data]
-ep_axs[R_indx].bar(
-    list(range(len(R))),
-    [np.sum(o[ep_num], axis=0) for o in R],
-    color=[f"C{i}" for i in range(len(R))],
+ep_axs[R_indx].boxplot(
+    [np.sum(o, axis=1) for o in R],
 )  # plot the total reward for each episode
 ep_axs[R_indx].set_yscale("log")
 ep_axs[R_indx].set_ylabel("$L$")
@@ -63,30 +61,27 @@ y = [
 y_min = [y[i].copy() for i in range(len(data))]
 y_max = [y[i].copy() for i in range(len(data))]
 viols = [y[i].copy() for i in range(len(data))]
-for z in range(len(data)):
-    for j in range(X[z].shape[1] - 1):
-        y[z][ep_num, j, :] = Model.output(X[z][ep_num, j, :], p)
-        y_min[z][ep_num, j, :] = Model.get_output_min(d[z][ep_num, j, :])
-        y_max[z][ep_num, j, :] = Model.get_output_max(d[z][ep_num, j, :])
-        viols[z][ep_num, j, :] = np.maximum(
-            np.maximum(y_min[z][ep_num, j, :] - y[z][ep_num, j, :], 0),
-            np.maximum(y[z][ep_num, j, :] - y_max[z][ep_num, j, :], 0),
-        )
+for i in range(y[0].shape[0]):
+    for z in range(len(data)):
+        for j in range(X[z].shape[1] - 1):
+            y[z][i, j, :] = Model.output(X[z][i, j, :], p)
+            y_min[z][i, j, :] = Model.get_output_min(d[z][i, j, :])
+            y_max[z][i, j, :] = Model.get_output_max(d[z][i, j, :])
+            viols[z][i, j, :] = np.maximum(
+                np.maximum(y_min[z][i, j, :] - y[z][i, j, :], 0),
+                np.maximum(y[z][i, j, :] - y_max[z][i, j, :], 0),
+            )
 
 # plot constraint violations
-ep_axs[VIOL_indx].bar(
-    list(range(len(X))),
-    [np.sum(viols[i][ep_num].flatten()) for i in range(len(data))],
-    color=[f"C{i}" for i in range(len(R))],
+ep_axs[VIOL_indx].boxplot(
+    [np.sum(viols[i].reshape(viols[i].shape[0], -1), axis=1) for i in range(len(data))]
 )  # plot the total reward for each episode
 ep_axs[VIOL_indx].set_yscale("log")
 ep_axs[VIOL_indx].set_ylabel("$viols$")
 
 # plot yields
-ep_axs[YIELD_indx].bar(
-    list(range(len(y))),
-    [y[i][ep_num, -1, 0] for i in range(len(data))],
-    color=[f"C{i}" for i in range(len(R))],
+ep_axs[YIELD_indx].boxplot(
+    [y[i][:, -1, 0] for i in range(len(data))],
 )  # plot the total reward for each episode
 # ep_axs[YIELD_indx].set_yscale("log")
 ep_axs[YIELD_indx].set_ylabel("$yield$")
@@ -97,22 +92,25 @@ c_co2 = 42e-2
 c_q = 6.35e-9
 c_pri_1 = 1.8
 c_pri_2 = 16
-EPI = np.zeros((len(U)), dtype=float)
-for i in range(len(U)):
-    final_yield = y[i][ep_num, -1, 0] * 1e-3  # convert from g to kg
-    EPI[i] = (
+final_yield = [o[:, -1, 0] * 1e-3 for o in y]  # convert from g to kg
+EPI = [(
         c_pri_1
-        + c_pri_2 * final_yield
+        + c_pri_2 * final_yield[i]
         - seconds_in_time_step
-        * (c_q * np.sum(U[i][ep_num, :, 2]) + c_co2 * np.sum(U[i][ep_num, :, 0]) * 1e-6)
-    )  # converting co2 from mg to kg
+        * (c_q * np.sum(U[i][:, :, 2], axis=1) + c_co2 * np.sum(U[i][:, :, 0], axis=1) * 1e-6)
+    ) for i in range(len(data))]  # converting co2 from mg to kg
 
 # plot economic performance index
-ep_axs[EPI_indx].bar(
-    list(range(len(y))),
+ep_axs[EPI_indx].boxplot(
     EPI,
-    tick_label=["nom perfect", "nom", "scenario 2", "scenario 5", "scenario 10"],
-    color=[f"C{i}" for i in range(len(R))],
+    # tick_label=[
+    #     "nom perfect",
+    #     "nom",
+    #     "scenario 2",
+    #     "scenario 5",
+    #     "scenario 10",
+    #     "scenario 20",
+    # ],
 )  # plot the total reward for each episode
 ep_axs[EPI_indx].set_ylabel("$EPI$")
 
