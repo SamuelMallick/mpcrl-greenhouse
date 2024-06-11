@@ -27,7 +27,7 @@ env = MonitorEpisodes(
             growing_days=days,
             model_type="continuous",
             disturbance_type="multiple",
-            testing=True,
+            testing="deterministic",
         ),
         max_episode_steps=int(episode_len),
     )

@@ -43,7 +43,7 @@ train_env = MonitorEpisodes(
             model_type=test.base_model,
             cost_parameters_dict=test.rl_cost,
             disturbance_type=test.disturbance_type,
-            testing=False,
+            testing="deterministic",
         ),
         max_episode_steps=int(episode_len),
     )
@@ -55,7 +55,7 @@ eval_env = MonitorEpisodes(
             model_type=test.base_model,
             cost_parameters_dict=test.rl_cost,
             disturbance_type=test.disturbance_type,
-            testing=True,
+            testing="deterministic",
         ),
         max_episode_steps=int(episode_len),
     )
@@ -176,4 +176,6 @@ if STORE_DATA:
         f"{identifier_ev}.pkl",
         "wb",
     ) as file:
-        pickle.dump({"name": identifier_ev, "X": X_ev, "U": U_ev, "R": R_ev, "d": d_ev}, file)
+        pickle.dump(
+            {"name": identifier_ev, "X": X_ev, "U": U_ev, "R": R_ev, "d": d_ev}, file
+        )
