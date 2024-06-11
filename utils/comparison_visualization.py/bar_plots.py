@@ -67,10 +67,17 @@ for i in range(y[0].shape[0]):
             y[z][i, j, :] = Model.output(X[z][i, j, :], p)
             y_min[z][i, j, :] = Model.get_output_min(d[z][i, j, :])
             y_max[z][i, j, :] = Model.get_output_max(d[z][i, j, :])
-            viols[z][i, j, :] = np.maximum(
-                np.maximum(y_min[z][i, j, :] - y[z][i, j, :], 0),
-                np.maximum(y[z][i, j, :] - y_max[z][i, j, :], 0),
+            viol_lower = np.maximum(
+                (y_min[z][i, j, :] - y[z][i, j, :])
+                / (y_max[z][i, j, :] - y_min[z][i, j, :]),
+                0,
             )
+            viol_upper = np.maximum(
+                (y[z][i, j, :] - y_max[z][i, j, :])
+                / (y_max[z][i, j, :] - y_min[z][i, j, :]),
+                0,
+            )
+            viols[z][i, j, :] = viol_upper.sum() + viol_lower.sum()
 
 # plot constraint violations
 ep_axs[VIOL_indx].boxplot(
@@ -93,12 +100,18 @@ c_q = 6.35e-9
 c_pri_1 = 1.8
 c_pri_2 = 16
 final_yield = [o[:, -1, 0] * 1e-3 for o in y]  # convert from g to kg
-EPI = [(
+EPI = [
+    (
         c_pri_1
         + c_pri_2 * final_yield[i]
         - seconds_in_time_step
-        * (c_q * np.sum(U[i][:, :, 2], axis=1) + c_co2 * np.sum(U[i][:, :, 0], axis=1) * 1e-6)
-    ) for i in range(len(data))]  # converting co2 from mg to kg
+        * (
+            c_q * np.sum(U[i][:, :, 2], axis=1)
+            + c_co2 * np.sum(U[i][:, :, 0], axis=1) * 1e-6
+        )
+    )
+    for i in range(len(data))
+]  # converting co2 from mg to kg
 
 # plot economic performance index
 ep_axs[EPI_indx].boxplot(
