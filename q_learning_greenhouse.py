@@ -118,6 +118,7 @@ agent = Evaluate(
     env_reset_options={"initial_day": test.initial_day}
     if test.disturbance_type == "single"
     else {},
+    seed=1,
 )
 # evaluate train
 agent.train(
