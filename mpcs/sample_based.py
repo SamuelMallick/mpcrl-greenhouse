@@ -25,6 +25,7 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         prediction_horizon: int = 6 * 4,
         cost_parameters_dict: dict = {},
         prediction_model: Literal["euler", "rk4"] = "rk4",
+        constrain_control_rate: bool = False,
         multistarts: int = 1,
         np_random: RngType = None,
     ) -> None:
@@ -43,6 +44,8 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             the cost parameters of the environment are used.
         prediction_model : Literal["euler", "rk4"], optional
             The prediction model to use, by default "rk4".
+        costrain_control_rate : bool, optional
+            Whether to constrain the control rate, by default False.
         multistarts : int, optional
             The number of multistarts to use for solving the NLPs, by default 1.
         np_random : RngType, optional
@@ -115,19 +118,20 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
                     _n(f"y_min_{k}", i),
                     y_k,
                     ">=",
-                    y_min_k - s[i][:, k]/(y_max_k - y_min_k)
+                    y_min_k - s[i][:, k] / (y_max_k - y_min_k),
                 )
                 self.constraint(
                     _n(f"y_max_{k}", i),
                     y_k,
                     "<=",
-                    y_max_k + s[i][:, k]/(y_max_k - y_min_k)
+                    y_max_k + s[i][:, k] / (y_max_k - y_min_k),
                 )
 
-        for k in range(1, N):
-            # control variation constraints
-            self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
-            self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
+        if constrain_control_rate:
+            for k in range(1, N):
+                # control variation constraints
+                self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
+                self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
 
         # objective
         obj = 0

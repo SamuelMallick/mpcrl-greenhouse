@@ -22,6 +22,7 @@ class LearningMpc(Mpc[cs.SX]):
         test: Test,
         prediction_horizon: int = 6 * 4,
         prediction_model: Literal["euler", "rk4"] = "rk4",
+        constrain_control_rate: bool = False,
         np_random: RngType = None,
     ) -> None:
         """Initialize the learning-based MPC for greenhouse control.
@@ -36,6 +37,8 @@ class LearningMpc(Mpc[cs.SX]):
             The prediction horizon, by default 6 * 4.
         prediction_model : Literal["euler", "rk4"], optional
             The prediction model to use, by default "rk4".
+        constrain_control_rate : bool, optional
+            Whether to constrain the control rate, by default False.
         np_random : RngType, optional
             The random number generator, by default None.
         """
@@ -112,20 +115,21 @@ class LearningMpc(Mpc[cs.SX]):
                 y[k],
                 ">=",
                 (1 + olb) * y_min_k
-                - s[:, k]/((1 + oub) * y_max_k - (1 + olb) * y_min_k)
+                - s[:, k] / ((1 + oub) * y_max_k - (1 + olb) * y_min_k),
             )
             self.constraint(
                 f"y_max_{k}",
                 y[k],
                 "<=",
                 (1 + oub) * y_max_k
-                + s[:, k]/((1 + oub) * y_max_k - (1 + olb) * y_min_k)
+                + s[:, k] / ((1 + oub) * y_max_k - (1 + olb) * y_min_k),
             )
 
-        for k in range(1, N):
-            # control variation constraints
-            self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
-            self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
+        if constrain_control_rate:
+            for k in range(1, N):
+                # control variation constraints
+                self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
+                self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
 
         # objective
         obj = V0

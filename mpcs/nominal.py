@@ -19,6 +19,7 @@ class NominalMpc(Mpc[cs.SX]):
         cost_parameters_dict: dict = {},
         prediction_model: Literal["euler", "rk4"] = "rk4",
         correct_model: bool = True,
+        constrain_control_rate: bool = False,
         perturb_list: list[int] | None = None,
         np_random: RngType = None,
     ) -> None:
@@ -37,9 +38,13 @@ class NominalMpc(Mpc[cs.SX]):
             The prediction model to use, by default "rk4".
         correct_model : bool, optional
             Whether to use the correct model, by default True.
+        constrain_control_rate : bool, optional
+            Whether to constrain the control rate, by default False.
         perturb_list : list[int] | None, optional
             The list of parameters to perturb, by default None.
             If correct_model is False and this is None, all parameters are perturbed.
+        np_random : RngType, optional
+            The random number generator, by default None.
         """
         nx, nu, nd, ts = (
             greenhouse_env.nx,
@@ -88,16 +93,17 @@ class NominalMpc(Mpc[cs.SX]):
             y_k = Model.output(x[:, k], p)
             # dividing by the range here instead of in the objective as the y_min_k and y_max_k are calcualted here
             self.constraint(
-                f"y_min_{k}", y_k, ">=", y_min_k - s[:, k]/(y_max_k - y_min_k)  
+                f"y_min_{k}", y_k, ">=", y_min_k - s[:, k] / (y_max_k - y_min_k)
             )
             self.constraint(
-                f"y_max_{k}", y_k, "<=", y_max_k + s[:, k]/(y_max_k - y_min_k)
+                f"y_max_{k}", y_k, "<=", y_max_k + s[:, k] / (y_max_k - y_min_k)
             )
 
-        for k in range(1, N):
-            # control variation constraints
-            self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
-            self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
+        if constrain_control_rate:
+            for k in range(1, N):
+                # control variation constraints
+                self.constraint(f"du_min_{k}", u[:, k] - u[:, k - 1], "<=", du_lim)
+                self.constraint(f"du_max_{k}", u[:, k] - u[:, k - 1], ">=", -du_lim)
 
         # objective
         obj = 0
