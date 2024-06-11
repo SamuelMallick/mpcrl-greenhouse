@@ -14,7 +14,8 @@ class Test:
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 50
-    disturbance_type: Literal["noisy", "multiple", "single"] = "single"
+    disturbance_type: Literal["multiple", "single"] = "single"
+    noisy_disturbance = True
     initial_day: int | None = 0 if disturbance_type == "single" else None
 
     # mpc and model params
@@ -24,7 +25,7 @@ class Test:
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 0.99
-    rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w": 1e4 * np.ones((1, 4))}
+    rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w": 1e5 * np.ones((1, 4))}
     p_perturb = list(range(Model.n_params))  # index of parameters that are perturbed
 
     # learning params
