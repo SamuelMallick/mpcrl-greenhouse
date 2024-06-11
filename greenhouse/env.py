@@ -5,7 +5,7 @@ import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-
+from utils.brownian_motion import brownian_excursion
 from greenhouse.model import Model
 
 
@@ -28,7 +28,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         growing_days: int,
         model_type: Literal["continuous", "rk4", "euler"],
         cost_parameters_dict: dict = {},
-        disturbance_type: Literal["noisy", "multiple", "single"] = "multiple",
+        disturbance_profiles_type: Literal["multiple", "single"] = "multiple",
+        noisy_disturbance: bool = False,
         testing: Literal["none", "random", "deterministic"] = "none",
     ) -> None:
         """Initializes the environment.
@@ -41,10 +42,13 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             The type of model used for the environment.
         cost_parameters_dict : dict
             The cost parameters for the environment.
-        disturbance_type : str
-            The type of disturbances used. "noisy" uses one disturbance profile for every episode with noise added.
-            "multiple" uses one of a subset of deterministic disturbance profiles for each episode.
+        disturbance_profiles_type : str
+            The type of disturbances used. 'muliple' uses of of a subset of possible disturbances
+            each episode. 'single' uses a single disturbance profile for all episodes.
+        noisy_disturbance : bool
+            Whether disturbance profiles are perturbed with brownian noise.
         testing : "none", "random", "deterministic"
+            Applicable if disturbance_type == 'multiple'. 
             Whether the disturbances used in the env are drawn from the training or testing set.
             If "none", the training disturbances are used. If "random", testing disturbances are drawn randomly.
             If "deterministic", testing disturbances are drawn deterministically.
@@ -119,7 +123,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             self.steps_per_day * growing_days - 1
         )  # the time step at which the yield reward is caclculated
         self.growing_days = growing_days
-        self.disturbance_type = disturbance_type
+        self.disturbance_profiles_type = disturbance_profiles_type
+        self.noisy_disturbance = noisy_disturbance
         self.testing = testing
         self._testing_counter = 0  # for deterministic testing
 
@@ -283,7 +288,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
     def generate_disturbance_profile(
         self, initial_day: int | None = None
     ) -> npt.NDArray[np.floating]:
-        """Returns the disturbance profile.
+        """Returns the disturbance profile. One extra day (growing_days + 1) is added 
+        to the returned profile to allow for predictions in an MPC horizon.
 
         Parameters
         ----------
@@ -295,10 +301,13 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         -------
         np.ndarray
             The disturbance profile."""
-        if initial_day is None:
-            if self.disturbance_type == "noisy":
-                raise NotImplementedError("This method is not implemented.")
-            elif self.disturbance_type == "multiple":
+        if initial_day is not None:
+            if self.disturbance_profiles_type != "single":
+                raise ValueError(
+                    "The initial day should not be specified when using multiple disturbance profiles."
+                )
+        else:
+            if self.disturbance_profiles_type == "multiple":
                 if self.testing == "none":
                     initial_day = self.np_random.choice(self.TRAIN_VIABLE_STARTING_IDX)
                 elif self.testing == "random":
@@ -308,11 +317,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                         self._testing_counter % len(self.TEST_VIABLE_STARTING_IDX)
                     ]
                     self._testing_counter += 1
-            else:
-                raise ValueError("Invalid disturbance type.")
-        return self.pick_disturbance(
-            initial_day, self.growing_days + 1
-        )  # one extra day in the disturbance profile for the MPC prediction horizon
+            else:   # "single"
+                initial_day = self.VIABLE_STARTING_IDX[0]   # use first day in the data
+
+        return self.pick_perturbed_disturbance_profile(initial_day, self.growing_days + 1, np.array([0.02, 0.01, 0.025, 0.01]) if self.noisy_disturbance else 0.0)
 
     def pick_disturbance(
         self, initial_day: int, num_days: int
@@ -338,6 +346,44 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         idx1 = initial_day * self.steps_per_day
         idx2 = (initial_day + num_days) * self.steps_per_day
         return self.disturbance_data[:, idx1:idx2]
+    
+    def pick_perturbed_disturbance_profile(self, initial_day: int, num_days: int, noise_scaling: float | np.ndarray) -> np.ndarray:
+        """Returns the disturbance profile starting from a given day with a brownian
+        noise random process added to it. The brownian noise is generated as the cumulative sum
+        of a white noise signal. The white noise is drawn from a unifrom distribution of width noise_scaling*range, where 
+        range is the range of the given element in the disturbance.
+        
+        Parameters
+        ----------
+        initial_day : int
+            The day to start the disturbance profile from.
+        num_days : int
+            The number of days in the disturbance profile.
+        noise_scaling : float
+            The width of the uniform distribution from which the white noise samples are drawn.
+            
+        Returns
+        -------
+        np.ndarray
+            The perturbed disturbance profile."""
+        nominal_disturbance = self.pick_disturbance(initial_day, num_days)
+        noise_width = noise_scaling * (np.max(nominal_disturbance, axis=1) - np.min(nominal_disturbance, axis=1))
+        # radiation noise done seperately with Brownian excursion
+        non_zero_mask = nominal_disturbance[0] > 0.5
+        diff_array = np.diff(non_zero_mask.astype(int)) # compute the difference in boolean array to find where changes from false/true or true/false occur
+        starts = np.where(diff_array == 1)[0] + 1
+        ends = np.where(diff_array == -1)[0] + 1
+        radiation_noise = np.zeros((num_days * self.steps_per_day,))
+        for i in range(starts.size):
+            brownian_excur = brownian_excursion(ends[i] - starts[i], noise_width[0], self.np_random)
+            radiation_noise[starts[i]:ends[i]] = brownian_excur
+        
+        white_noise = self.np_random.uniform(-noise_width[1:, np.newaxis]/2, noise_width[1:, np.newaxis]/2, (self.nd-1, num_days * self.steps_per_day))
+        brownian_noise = np.vstack((radiation_noise, np.cumsum(white_noise, axis=1)))
+        noisy_disturbance = nominal_disturbance + brownian_noise
+        noisy_disturbance[0] = np.maximum(0, noisy_disturbance[0])
+        # noisy_disturbance[0, np.isclose(nominal_disturbance[0], 0, rtol=5)] = 0
+        return noisy_disturbance
 
     def get_cost_parameters(self) -> dict:
         """Returns the cost parameters of the environment.

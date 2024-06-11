@@ -183,4 +183,10 @@ axs[0, 0].set_title("First ep")
 axs[0, 1].set_title("Last ep")
 axs[-1, 0].set_xlabel("Timestep")
 axs[-1, 1].set_xlabel("Timestep")
+
+# plot disturbance profiles
+_, axs = plt.subplots(nd, 1, constrained_layout=True, sharex=True)
+for i in range(nd):
+    axs[i].plot(d.reshape(-1, d.shape[2])[:, i])
+
 plt.show()

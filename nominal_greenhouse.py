@@ -25,14 +25,15 @@ env = MonitorEpisodes(
         LettuceGreenHouse(
             growing_days=days,
             model_type="continuous",
-            disturbance_type="multiple",
-            testing="deterministic",
+            disturbance_profiles_type="single",
+            noisy_disturbance=True,
+            testing="none",
         ),
         max_episode_steps=int(episode_len),
     )
 )
-num_episodes = 1
-initial_days = list(range(20))
+num_episodes = 5
+initial_days = [0]
 
 prediction_model: Literal["euler", "rk4"] = "rk4"
 correct_model = True

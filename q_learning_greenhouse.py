@@ -42,8 +42,8 @@ train_env = MonitorEpisodes(
             growing_days=test.num_days,
             model_type=test.base_model,
             cost_parameters_dict=test.rl_cost,
-            disturbance_type=test.disturbance_type,
-            testing="deterministic",
+            disturbance_profiles_type=test.disturbance_type,
+            noisy_disturbance=test.noisy_disturbance,
         ),
         max_episode_steps=int(episode_len),
     )
@@ -54,8 +54,8 @@ eval_env = MonitorEpisodes(
             growing_days=test.num_days,
             model_type=test.base_model,
             cost_parameters_dict=test.rl_cost,
-            disturbance_type=test.disturbance_type,
-            testing="deterministic",
+            disturbance_profiles_type=test.disturbance_type,
+            noisy_disturbance=test.noisy_disturbance,
         ),
         max_episode_steps=int(episode_len),
     )
