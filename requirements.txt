@@ -3,7 +3,7 @@ casadi==3.6.5
 scipy==1.13.1
 gymnasium==0.29.1
 csnlp==1.5.11rc2
-mpcrl==1.2.1rc2
+mpcrl==1.2.1rc3
 matplotlib==3.9.0
 
 # extra requirements for ddpg

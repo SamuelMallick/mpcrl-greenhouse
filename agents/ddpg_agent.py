@@ -30,8 +30,8 @@ class AugmentedObservationWrapper(ObservationWrapper):
         lby, uby = [-np.inf, 0.0, -273.15, 0.0], np.full(nx, np.inf)
         lbd, ubd = [0.0, 0.0, -273.15, 0.0], np.full(nd, np.inf)
         self.observation_space = spaces.Box(
-            np.concatenate((lby, lbd, act.low)),
-            np.concatenate((uby, ubd, act.high)),
+            np.concatenate((lby, lbd)),  # act.low
+            np.concatenate((uby, ubd)),  # act.high
             dtype=act.dtype,
             seed=act.np_random,
         )
@@ -41,7 +41,7 @@ class AugmentedObservationWrapper(ObservationWrapper):
         output = Model.output(state, env.p)
         output[0] -= env.previous_lettuce_yield
         new_state = np.concatenate(
-            (output, env.current_disturbance, env.previous_action), axis=None
+            (output, env.current_disturbance), axis=None  # env.previous_action
         )
         assert self.observation_space.contains(new_state), "Invalid observation."
         return new_state
@@ -62,8 +62,9 @@ def make_env(
     greenhouse = LettuceGreenHouse(
         growing_days=days,
         model_type="continuous",
-        disturbance_type="multiple",
-        testing=evaluation,
+        disturbance_profiles_type="single",
+        noisy_disturbance=True,
+        testing="none",
     )
     max_episode_steps = days * LettuceGreenHouse.steps_per_day
     env = MonitorEpisodes(TimeLimit(greenhouse, max_episode_steps=max_episode_steps))
@@ -162,8 +163,8 @@ def train_ddpg(
     eval_env, _ = make_env(gamma, days_per_episode, evaluation=True, seed=seed)
     cb = EvalCallback(
         eval_env=eval_env,
-        n_eval_episodes=1,
-        eval_freq=steps_per_episode,
+        n_eval_episodes=10,
+        eval_freq=steps_per_episode * int(episodes / 10),
         verbose=verbose,
     )
 
