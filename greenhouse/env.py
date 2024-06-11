@@ -93,10 +93,10 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
                     return dynamics_rk4_fallback(x, u, d)
 
         elif model_type == "rk4":
-            xf = Model.rk4_step(x, u, d, p, self.ts)
+            xf = Model.rk4_step(x, u, d, p, ts)
             inner_dynamics = cs.Function("dynamics", [x, u, d], [xf])
         elif model_type == "euler":
-            xf = Model.euler_step(x, u, d, p, self.ts)
+            xf = Model.euler_step(x, u, d, p, ts)
             inner_dynamics = cs.Function("dynamics", [x, u, d], [xf])
 
         def dynamics(x, u, d):
