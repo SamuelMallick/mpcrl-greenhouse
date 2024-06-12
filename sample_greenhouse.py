@@ -33,11 +33,11 @@ env = MonitorEpisodes(
         max_episode_steps=int(episode_len),
     )
 )
-num_episodes = 1
+num_episodes = 100
 initial_days = [0]
 
 multistarts = 1
-num_samples = 20
+num_samples = 2
 prediction_model: Literal["euler", "rk4"] = "rk4"
 sample_mpc = SampleBasedMpc(
     n_samples=num_samples,

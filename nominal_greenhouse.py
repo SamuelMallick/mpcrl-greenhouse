@@ -32,7 +32,7 @@ env = MonitorEpisodes(
         max_episode_steps=int(episode_len),
     )
 )
-num_episodes = 5
+num_episodes = 100
 initial_days = [0]
 
 prediction_model: Literal["euler", "rk4"] = "rk4"
