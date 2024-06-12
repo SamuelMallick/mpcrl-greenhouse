@@ -29,5 +29,4 @@ def brownian_excursion(steps: int, noise_width: float, np_random: np.random.Gene
         np.ndarray: Brownian excursion values.
     """
     B = brownian_bridge(steps, noise_width, np_random)
-    # excursion = np.abs(B)  # Reflect negative values
     return B

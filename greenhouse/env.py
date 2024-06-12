@@ -320,7 +320,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             else:   # "single"
                 initial_day = self.VIABLE_STARTING_IDX[0]   # use first day in the data
 
-        return self.pick_perturbed_disturbance_profile(initial_day, self.growing_days + 1, np.array([0.02, 0.01, 0.025, 0.01]) if self.noisy_disturbance else 0.0)
+        return self.pick_perturbed_disturbance_profile(initial_day, self.growing_days + 1, np.array([0.02, 0.01, 0.02, 0.01]) if self.noisy_disturbance else 0.0)
 
     def pick_disturbance(
         self, initial_day: int, num_days: int
@@ -351,7 +351,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         """Returns the disturbance profile starting from a given day with a brownian
         noise random process added to it. The brownian noise is generated as the cumulative sum
         of a white noise signal. The white noise is drawn from a unifrom distribution of width noise_scaling*range, where 
-        range is the range of the given element in the disturbance.
+        range is the range of the given element in the disturbance. For the temerature and the radation the noise
+        is generated with Brownian excursions, to prevent impossible values, i.e., negative radiation.
         
         Parameters
         ----------
@@ -374,15 +375,17 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         starts = np.where(diff_array == 1)[0] + 1
         ends = np.where(diff_array == -1)[0] + 1
         radiation_noise = np.zeros((num_days * self.steps_per_day,))
+        temperature_noise = np.zeros((num_days * self.steps_per_day,))
         for i in range(starts.size):
-            brownian_excur = brownian_excursion(ends[i] - starts[i], noise_width[0], self.np_random)
-            radiation_noise[starts[i]:ends[i]] = brownian_excur
+            brownian_excursion_rad = brownian_excursion(ends[i] - starts[i], noise_width[0], self.np_random)
+            radiation_noise[starts[i]:ends[i]] = brownian_excursion_rad
+            brownian_excursion_temp = brownian_excursion(ends[i] - starts[i], noise_width[2], self.np_random)
+            temperature_noise[starts[i]:ends[i]] = brownian_excursion_temp
         
-        white_noise = self.np_random.uniform(-noise_width[1:, np.newaxis]/2, noise_width[1:, np.newaxis]/2, (self.nd-1, num_days * self.steps_per_day))
-        brownian_noise = np.vstack((radiation_noise, np.cumsum(white_noise, axis=1)))
+        white_noise = self.np_random.uniform(-noise_width[[1, 3], np.newaxis]/2, noise_width[[1, 3], np.newaxis]/2, (self.nd-2, num_days * self.steps_per_day))
+        brownian_noise = np.vstack((radiation_noise, np.cumsum(white_noise[0]), temperature_noise, np.cumsum(white_noise[1])))
         noisy_disturbance = nominal_disturbance + brownian_noise
-        noisy_disturbance[0] = np.maximum(0, noisy_disturbance[0])
-        # noisy_disturbance[0, np.isclose(nominal_disturbance[0], 0, rtol=5)] = 0
+        noisy_disturbance[0] = np.maximum(0, noisy_disturbance[0])  # radiation cannot be negative
         return noisy_disturbance
 
     def get_cost_parameters(self) -> dict:
