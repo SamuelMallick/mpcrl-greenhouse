@@ -69,7 +69,7 @@ class LearningMpc(Mpc[cs.SX]):
         # dynamics parameters
         p = [self.parameter(f"p_{i}", (1,)) for i in range(Model.n_params)]
 
-        p_values = Model.get_perturbed_parameters(test.p_perturb)
+        p_values = Model.get_perturbed_parameters(test.p_perturb, np_random=np_random)
 
         # parameters initial values dictionaries
         learnable_pars_init = test.learnable_pars_init
