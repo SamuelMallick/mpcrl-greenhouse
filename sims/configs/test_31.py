@@ -62,6 +62,7 @@ class Test:
         hook="on_episode_end",
         strength=0.1 * np.array([[1.2], [7.5], [150]]),
         mode="gradient-based",
+        seed=0,
     )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
