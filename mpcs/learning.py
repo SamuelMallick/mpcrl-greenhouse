@@ -20,10 +20,10 @@ class LearningMpc(Mpc[cs.SX]):
         self,
         greenhouse_env: LettuceGreenHouse,
         test: Test,
+        np_random: RngType,
         prediction_horizon: int = 6 * 4,
         prediction_model: Literal["euler", "rk4"] = "rk4",
         constrain_control_rate: bool = False,
-        np_random: RngType = None,
     ) -> None:
         """Initialize the learning-based MPC for greenhouse control.
 
