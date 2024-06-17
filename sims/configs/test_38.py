@@ -10,7 +10,7 @@ from sims.configs.default import DefaultTest
 
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_35"
+    test_ID = "test_38"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
