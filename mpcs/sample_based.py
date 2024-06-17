@@ -25,7 +25,7 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
         prediction_horizon: int = 6 * 4,
         cost_parameters_dict: dict = {},
         prediction_model: Literal["euler", "rk4"] = "rk4",
-        constrain_control_rate: bool = False,
+        constrain_control_rate: bool = True,
         multistarts: int = 1,
         np_random: RngType = None,
     ) -> None:

@@ -29,6 +29,7 @@ env = MonitorEpisodes(
             disturbance_profiles_type="single",
             noisy_disturbance=True,
             testing="none",
+            clip_action_variation=True,
         ),
         max_episode_steps=int(episode_len),
     )
@@ -50,6 +51,7 @@ sample_mpc = SampleBasedMpc(
     prediction_model=prediction_model,
     multistarts=multistarts,
     np_random=np_random,
+    constrain_control_rate=True,
 )
 agent = Log(
     GreenhouseSampleAgent(

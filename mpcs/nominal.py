@@ -19,7 +19,7 @@ class NominalMpc(Mpc[cs.SX]):
         cost_parameters_dict: dict = {},
         prediction_model: Literal["euler", "rk4"] = "rk4",
         correct_model: bool = True,
-        constrain_control_rate: bool = False,
+        constrain_control_rate: bool = True,
         perturb_list: list[int] | None = None,
         np_random: RngType = None,
     ) -> None:

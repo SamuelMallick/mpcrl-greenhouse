@@ -44,6 +44,7 @@ train_env = MonitorEpisodes(
             cost_parameters_dict=test.rl_cost,
             disturbance_profiles_type=test.disturbance_type,
             noisy_disturbance=test.noisy_disturbance,
+            clip_action_variation=test.clip_action_variation,
         ),
         max_episode_steps=int(episode_len),
     )
@@ -56,6 +57,7 @@ eval_env = MonitorEpisodes(
             cost_parameters_dict=test.rl_cost,
             disturbance_profiles_type=test.disturbance_type,
             noisy_disturbance=test.noisy_disturbance,
+            clip_action_variation=test.clip_action_variation,
         ),
         max_episode_steps=int(episode_len),
     )
@@ -67,6 +69,7 @@ mpc = LearningMpc(
     test=test,
     prediction_model=prediction_model,
     np_random=np_random,
+    constrain_control_rate=True
 )
 param_bounds = (
     Model.get_learnable_parameter_bounds()

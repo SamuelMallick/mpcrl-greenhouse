@@ -28,6 +28,7 @@ env = MonitorEpisodes(
             disturbance_profiles_type="single",
             noisy_disturbance=True,
             testing="none",
+            clip_action_variation=True,
         ),
         max_episode_steps=int(episode_len),
     )
@@ -47,6 +48,7 @@ mpc = NominalMpc(
     prediction_model=prediction_model,
     correct_model=correct_model,
     np_random=np_random,
+    constrain_control_rate=True,
 )
 
 agent = Log(

@@ -31,6 +31,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         disturbance_profiles_type: Literal["multiple", "single"] = "multiple",
         noisy_disturbance: bool = False,
         testing: Literal["none", "random", "deterministic"] = "none",
+        clip_action_variation: bool = False,
     ) -> None:
         """Initializes the environment.
 
@@ -52,6 +53,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             Whether the disturbances used in the env are drawn from the training or testing set.
             If "none", the training disturbances are used. If "random", testing disturbances are drawn randomly.
             If "deterministic", testing disturbances are drawn deterministically.
+        clip_actions : bool
+            If True the input action is clipped such that the change in control inputs is within the limits.
+            By default, False.
         """
         super().__init__()
 
@@ -127,6 +131,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         self.noisy_disturbance = noisy_disturbance
         self.testing = testing
         self._testing_counter = 0  # for deterministic testing
+        self.clip_action_variation = clip_action_variation
 
     @property
     def current_disturbance(self) -> npt.NDArray[np.floating]:
@@ -254,6 +259,12 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         """
         u = np.asarray(action).reshape(self.nu)
         assert self.action_space.contains(u), f"Invalid action in `step`: {u}."
+        if self.clip_action_variation:
+            u = np.clip(
+                u,
+                self.previous_action - self.du_lim,
+                self.previous_action + self.du_lim,
+            )
         x = self.x
         r = float(self.get_stage_cost(x, u))
         d = self.current_disturbance
