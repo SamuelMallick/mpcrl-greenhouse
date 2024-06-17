@@ -8,7 +8,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 
-class Test:
+class DefaultTest:
     # simulation and training params
     test_ID = "default"
     num_days = 40
@@ -17,6 +17,7 @@ class Test:
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
     initial_day: int | None = 0 if disturbance_type == "single" else None
+    clip_action_variation = False
 
     # mpc and model params
     base_model: Literal[

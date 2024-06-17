@@ -10,7 +10,7 @@ from mpcrl.util.seeding import RngType
 
 from greenhouse.env import LettuceGreenHouse
 from greenhouse.model import Model
-from sims.configs.default import Test
+from sims.configs.default import DefaultTest
 
 
 class LearningMpc(Mpc[cs.SX]):
@@ -19,7 +19,7 @@ class LearningMpc(Mpc[cs.SX]):
     def __init__(
         self,
         greenhouse_env: LettuceGreenHouse,
-        test: Test,
+        test: DefaultTest,
         np_random: RngType,
         prediction_horizon: int = 6 * 4,
         prediction_model: Literal["euler", "rk4"] = "rk4",

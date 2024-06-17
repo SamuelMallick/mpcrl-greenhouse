@@ -5,9 +5,9 @@ from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
+from default import DefaultTest
 
-
-class Test:
+class Test(DefaultTest):
     # simulation and training params
     test_ID = "test_27"
     num_days = 40
