@@ -1,4 +1,5 @@
 import pickle
+import sys
 from itertools import product
 
 import matplotlib.pyplot as plt
@@ -6,8 +7,10 @@ import numpy as np
 
 from greenhouse.model import Model
 
-plt.rc("text", usetex=True)
-plt.rc("font", size=14)
+if len(sys.argv) > 1:
+    file_name = sys.argv[1]
+else:
+    raise RuntimeError("Please provide a file name to visualize, you donkey")
 plt.style.use("bmh")
 
 days = 40
@@ -15,8 +18,7 @@ ep_len = days * 24 * 4  # 40 days of 15 minute timesteps
 seconds_in_time_step = 15 * 60
 nx = 4
 nu = 3
-file_name = "results/nominal/nominal_greenhouse_rk4_True_19.pkl"
-# file_name = "results/test_30_train.pkl"
+nd = 4
 p = Model.get_true_parameters()
 
 with open(

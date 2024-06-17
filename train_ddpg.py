@@ -82,13 +82,15 @@ def store_data(
         for i in range(X.shape[0]):
             fn = f"{identifier}_{env_type}_{i}"
             with open(f"{fn}.pkl", "wb") as file:
-                pickle.dump({"name": fn, "X": X[i], "U": U[i], "d": D[i], "R": R[i]}, file)
+                pickle.dump(
+                    {"name": fn, "X": X[i], "U": U[i], "d": D[i], "R": R[i]}, file
+                )
 
 
 if __name__ == "__main__":
     # launch training
     simulations = do_training(
-        episodes=2000, days_per_episode=40, n_agents=1, seed=1, devices="cpu"
+        episodes=2000, days_per_episode=40, n_agents=1, seed=1, devices="cuda:2"
     )
 
     # process and plot or store data
