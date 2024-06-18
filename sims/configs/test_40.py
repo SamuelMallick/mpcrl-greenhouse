@@ -54,7 +54,7 @@ class Test(DefaultTest):
         "c_u": [0, np.inf],
     }
     skip_first = 20
-    update_strategy = UpdateStrategy(100, skip_first=skip_first, hook="on_time_step_end")
+    update_strategy = UpdateStrategy(100, skip_first=skip_first, hook="on_timestep_end")
     learning_rate = 1e-1
     optimizer = optim.NetwonMethod(
         learning_rate=ExponentialScheduler(learning_rate, factor=1)
