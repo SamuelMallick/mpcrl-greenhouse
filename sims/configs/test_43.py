@@ -10,7 +10,7 @@ from sims.configs.default import DefaultTest
 
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_40"
+    test_ID = "test_43"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
@@ -25,7 +25,7 @@ class Test(DefaultTest):
     ] = "continuous"  # underlying simulation model
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
-    discount_factor = 1.0
+    discount_factor = 0.99
     rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w_y": 1e5 * np.ones((1, 4))}
     p_perturb = list(range(Model.n_params))  # index of parameters that are perturbed
 

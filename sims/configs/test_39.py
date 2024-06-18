@@ -13,7 +13,7 @@ class Test(DefaultTest):
     test_ID = "test_39"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
-    num_episodes = 20
+    num_episodes = 100
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
     initial_day: int | None = 0 if disturbance_type == "single" else None
