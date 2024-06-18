@@ -73,7 +73,7 @@ U = data["U"]
 y = Model.output(X[:, :-1].transpose(2, 0, 1), p).transpose(1, 2, 0)
 y_min = np.empty((X.shape[0], X.shape[1] - 1, y.shape[2]), dtype=X.dtype)
 y_max = y_min.copy()
-viols = y_min.copy()
+viols = np.empty((X.shape[0], X.shape[1] - 1), dtype=X.dtype)
 for i, j in product(range(X.shape[0]), range(X.shape[1] - 1)):
     if i % 100 == 0 and j == 0:
         print(f"Calculating constraint violations for episode {i} timestep {j}")
@@ -85,25 +85,25 @@ for i, j in product(range(X.shape[0]), range(X.shape[1] - 1)):
     viol_upper = np.maximum(
         (y[i, j, :] - y_max[i, j, :]) / (y_max[i, j, :] - y_min[i, j, :]), 0
     )
-    viols[i, j, :] = viol_lower.sum() + viol_upper.sum()
+    viols[i, j] = viol_lower.sum() + viol_upper.sum()
 
 du_lim = Model.get_du_lim()
 viols_du = np.maximum(0, (np.abs(U[:, 1:, :] - U[:, :-1, :]) - du_lim) / du_lim)
 
 # plot constraint violations
 t_axs[VIOL_Y_indx].plot(
-    viols.reshape(-1, nx), "o", markersize=1
+    viols.reshape(-1), "o", markersize=1
 )  # plot the reward for each timestep of all episodes
 t_axs[VIOL_Y_indx].set_ylabel("$viols$")
 t_axs[VIOL_Y_indx].set_xlabel("Timestep")
 ep_axs[VIOL_Y_indx].plot(
-    np.sum(viols.reshape(-1, ep_len * nx), axis=1), "o", markersize=1
+    np.sum(viols, axis=1), "o", markersize=1
 )  # plot the total reward for each episode
 ep_axs[VIOL_Y_indx].set_ylabel("$viols_{ep}$")
 
-ep_axs[VIOL_U_indx].plot(
-    np.sum(viols_du.reshape(viols_du.shape[0], -1), axis=1), "o", markersize=1
-)
+# ep_axs[VIOL_U_indx].plot(
+#     np.sum(viols_du.reshape(viols_du.shape[0], -1), axis=1), "o", markersize=1
+# )
 
 # calculate ecomonmic performance index
 c_co2 = 42e-2
@@ -158,13 +158,15 @@ if "param_dict" in data:
                     axs[i].set_ylabel(param_keys[5 * j + i])
 
 # plot first and last episodes
-_, axs = plt.subplots(nx, 2, constrained_layout=True, sharex=True)
+first = 0
+last = -1
+_, axs = plt.subplots(nx, 2, constrained_layout=True, sharex=True, sharey="row")
 for i in range(2):
     for j in range(nx):
         axs[j, i].plot(y[0 if i == 0 else -1, :, j])
         if j > 0:
-            axs[j, i].plot(y_min[0 if i == 0 else -1, :, j], color="black")
-            axs[j, i].plot(y_max[0 if i == 0 else -1, :, j], color="r")
+            axs[j, i].plot(y_min[first if i == 0 else last, :, j], color="black")
+            axs[j, i].plot(y_max[first if i == 0 else last, :, j], color="r")
 axs[0, 0].set_title("First ep")
 axs[0, 1].set_title("Last ep")
 axs[-1, 0].set_xlabel("Timestep")
@@ -189,6 +191,16 @@ axs[-1, 1].set_xlabel("Timestep")
 # plot disturbance profiles
 _, axs = plt.subplots(nd, 1, constrained_layout=True, sharex=True)
 for i in range(nd):
-    axs[i].plot(d.reshape(-1, d.shape[2])[:, i])
+    # axs[i].plot(d.reshape(-1, d.shape[2])[:, i])
+    axs[i].plot(d[0, :, i].reshape(-1))
+
+# set axis ranges
+t_axs[VIOL_Y_indx].set_ylim(0, 2)
+ep_axs[VIOL_Y_indx].set_ylim(0, 1200)
+t_axs[TD_indx].set_ylim(-5e7, 5e7)
+ep_axs[TD_indx].set_ylim(-10e9, 10e9)
+t_axs[R_indx].set_ylim(0, 2e5)
+ep_axs[R_indx].set_ylim(0, 2e8)
+
 
 plt.show()
