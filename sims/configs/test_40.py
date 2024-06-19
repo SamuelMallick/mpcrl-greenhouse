@@ -7,7 +7,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
-
+# trying discount factor 1, accidentally also had time-step updates - see test 47 for only disc factor 1
 class Test(DefaultTest):
     # simulation and training params
     test_ID = "test_40"

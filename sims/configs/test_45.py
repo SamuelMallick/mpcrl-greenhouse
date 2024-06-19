@@ -7,10 +7,11 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
-# trying faster updates - CRASHED with parameter out of bounds
+
+# trying faster updated with smaller learning rate than test 43
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_43"
+    test_ID = "test_45"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
@@ -55,7 +56,7 @@ class Test(DefaultTest):
     }
     skip_first = 20
     update_strategy = UpdateStrategy(100, skip_first=skip_first, hook="on_timestep_end")
-    learning_rate = 1e-1
+    learning_rate = 1e-2
     optimizer = optim.NetwonMethod(
         learning_rate=ExponentialScheduler(learning_rate, factor=1)
     )

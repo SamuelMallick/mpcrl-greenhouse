@@ -7,7 +7,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
-
+# trying smaller weight on violation
 class Test(DefaultTest):
     # simulation and training params
     test_ID = "test_42"

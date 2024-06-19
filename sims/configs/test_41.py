@@ -7,7 +7,7 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
-
+# trying larger learning rate - CRASHED with parameter out of bounds
 class Test(DefaultTest):
     # simulation and training params
     test_ID = "test_41"
