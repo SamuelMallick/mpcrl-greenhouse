@@ -54,7 +54,7 @@ mpc = NominalMpc(
 agent = Log(
     GreenhouseAgent(mpc, fixed_parameters={}),
     level=logging.DEBUG,
-    log_frequencies={"on_timestep_end": 1},
+    log_frequencies={"on_timestep_end": 100},
     to_file=True,
     log_name=f"nominal_greenhouse_{prediction_model}_{correct_model}",
 )

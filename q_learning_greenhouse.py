@@ -108,7 +108,7 @@ agent = Evaluate(
             )
         ),
         level=logging.DEBUG,
-        log_frequencies={"on_timestep_end": 1},
+        log_frequencies={"on_timestep_end": 100},
         to_file=True,
         log_name=f"log_{test.test_ID}",
     ),
