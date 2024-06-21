@@ -10,7 +10,7 @@ from sims.configs.default import DefaultTest
 # Removing everything but the humidity cost
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_49"
+    test_ID = "test_52"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
