@@ -8,10 +8,10 @@ from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
 # Making some of the changes from the dicussion with Pippo 25-06
-#Trying first order gradient descent - This one exploded
+# This is 57 with higher learning rate
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_58"
+    test_ID = "test_60"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
@@ -56,8 +56,8 @@ class Test(DefaultTest):
     }
     skip_first = 0
     update_strategy = UpdateStrategy(1, skip_first=skip_first, hook="on_episode_end")
-    learning_rate = 1e-3
-    optimizer = optim.GradientDescent(
+    learning_rate = 0.5e0
+    optimizer = optim.NetwonMethod(
         learning_rate=ExponentialScheduler(learning_rate, factor=1),
         max_percentage_update=0.05,
         bound_consistency=True,
@@ -69,4 +69,4 @@ class Test(DefaultTest):
         include_latest=1 * ep_len,
         seed=0,
     )
-    hessian_type = "none"
+    hessian_type = "approx"
