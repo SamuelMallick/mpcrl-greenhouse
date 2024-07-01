@@ -19,6 +19,7 @@ class Test(DefaultTest):
     noisy_disturbance = False
     initial_day: int | None = 0 if disturbance_type == "single" else None
     clip_action_variation = True
+    normalize_reward = False
 
     # mpc and model params
     base_model: Literal[
