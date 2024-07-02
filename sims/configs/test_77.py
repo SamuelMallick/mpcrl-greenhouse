@@ -7,12 +7,10 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
-# This is 64 BEST YET but with long windows
-
-# !! - stuffed up, normalized reward not present in tests untill test 76. However from test 63 onwards the slack normalization was changed
+# This is a re run of 65 with the reward normalization actually implemented
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_65"
+    test_ID = "test_77"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100

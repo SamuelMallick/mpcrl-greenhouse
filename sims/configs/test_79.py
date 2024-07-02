@@ -7,12 +7,10 @@ from mpcrl.core.schedulers import ExponentialScheduler
 from greenhouse.model import Model
 
 from sims.configs.default import DefaultTest
-# This is 64 BEST YET but with long windows
-
-# !! - stuffed up, normalized reward not present in tests untill test 76. However from test 63 onwards the slack normalization was changed
+# This is 76 but with exploreation
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_65"
+    test_ID = "test_79"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
@@ -20,7 +18,7 @@ class Test(DefaultTest):
     noisy_disturbance = False
     initial_day: int | None = 0 if disturbance_type == "single" else None
     clip_action_variation = True
-    normalize_reward = True
+    normalize_reward = False
 
     # mpc and model params
     base_model: Literal[
@@ -64,7 +62,13 @@ class Test(DefaultTest):
         max_percentage_update=0.05,
         bound_consistency=True,
     )
-    exploration = None
+    exploration = EpsilonGreedyExploration(
+        epsilon=ExponentialScheduler(0.9, factor=0.93),
+        hook="on_episode_end",
+        strength=0.5 * np.array([[1.2], [7.5], [150]]),
+        mode="additive",
+        seed=0,
+    )
     experience = ExperienceReplay(
         maxlen= 3 * ep_len,
         sample_size=2 * ep_len,
