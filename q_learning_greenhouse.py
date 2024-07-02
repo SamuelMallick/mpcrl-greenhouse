@@ -6,7 +6,7 @@ from typing import Literal
 
 import casadi as cs
 import numpy as np
-from gymnasium.wrappers import TimeLimit
+from gymnasium.wrappers import NormalizeReward, TimeLimit
 
 # import networkx as netx
 from mpcrl import LearnableParameter, LearnableParametersDict
@@ -49,6 +49,8 @@ train_env = MonitorEpisodes(
         max_episode_steps=int(episode_len),
     )
 )
+if test.normalize_reward:
+    train_env = NormalizeReward(train_env, test.discount_factor)
 eval_env = MonitorEpisodes(
     TimeLimit(
         LettuceGreenHouse(
