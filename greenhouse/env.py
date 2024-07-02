@@ -168,7 +168,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
 
         if options is not None and "initial_day" in options:
             self.disturbance_profile = self.generate_disturbance_profile(
-                options["initial_day"]
+                options["initial_day"], noise_coeff=options.get("noise_coeff", 1.0)
             )
         else:
             # randomly shuffle the disturbance data's starting indeces (but do it only once)
@@ -298,7 +298,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         ]
 
     def generate_disturbance_profile(
-        self, initial_day: int | None = None
+        self, initial_day: int | None = None, noise_coeff: float = 1.0
     ) -> npt.NDArray[np.floating]:
         """Returns the disturbance profile. One extra day (growing_days + 1) is added
         to the returned profile to allow for predictions in an MPC horizon.
@@ -308,6 +308,8 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         initial_day : int | None
             The day to start the disturbance profile from. If none, a random
             day is chosen from the viable starting days.
+        noise_coeff : float
+            The scaling factor for the noise added to the disturbance profile. By default, 1.0.
 
         Returns
         -------
@@ -335,7 +337,7 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         return self.pick_perturbed_disturbance_profile(
             initial_day,
             self.growing_days + 1,
-            np.array([0.02, 0.01, 0.02, 0.01]) if self.noisy_disturbance else 0.0,
+            noise_coeff*np.array([0.02, 0.01, 0.02, 0.01]) if self.noisy_disturbance else 0.0,
         )
 
     def pick_disturbance(

@@ -16,6 +16,7 @@ class DefaultTest:
     num_episodes = 50
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
+    noise_coeff = 1.0 # scales the noise generation
     initial_day: int | None = 0 if disturbance_type == "single" else None
     clip_action_variation = False
     normalize_reward = False

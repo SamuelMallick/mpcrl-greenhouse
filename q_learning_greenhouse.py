@@ -118,7 +118,7 @@ agent = Evaluate(
     eval_immediately=True,
     deterministic=True,
     raises=False,
-    env_reset_options={"initial_day": test.initial_day}
+    env_reset_options={"initial_day": test.initial_day, "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0}
     if test.disturbance_type == "single"
     else {},
     seed=1,
@@ -129,7 +129,7 @@ agent.train(
     episodes=test.num_episodes,
     seed=1,
     raises=False,
-    env_reset_options={"initial_day": test.initial_day}
+    env_reset_options={"initial_day": test.initial_day, "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0}
     if test.disturbance_type == "single"
     else {},
 )
