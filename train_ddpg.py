@@ -31,7 +31,7 @@ def do_training(
             l2_regularization=1e-5,
             batch_size=64,
             buffer_size=10_000,
-            gamma=0.9,
+            gamma=0.99,  # NOTE: different from Morcego et al.
             seed=int(seeds[n]),
             device=devices[n % len(devices)],
             verbose=1,
