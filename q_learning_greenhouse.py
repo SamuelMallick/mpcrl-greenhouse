@@ -71,7 +71,7 @@ mpc = LearningMpc(
     test=test,
     prediction_model=prediction_model,
     np_random=np_random,
-    constrain_control_rate=True
+    constrain_control_rate=True,
 )
 param_bounds = (
     Model.get_learnable_parameter_bounds()
@@ -120,7 +120,10 @@ agent = Evaluate(
     eval_immediately=True,
     deterministic=True,
     raises=False,
-    env_reset_options={"initial_day": test.initial_day, "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0}
+    env_reset_options={
+        "initial_day": test.initial_day,
+        "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0,
+    }
     if test.disturbance_type == "single"
     else {},
     seed=1,
@@ -131,7 +134,10 @@ agent.train(
     episodes=test.num_episodes,
     seed=1,
     raises=False,
-    env_reset_options={"initial_day": test.initial_day, "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0}
+    env_reset_options={
+        "initial_day": test.initial_day,
+        "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0,
+    }
     if test.disturbance_type == "single"
     else {},
 )

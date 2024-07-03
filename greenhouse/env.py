@@ -337,7 +337,9 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
         return self.pick_perturbed_disturbance_profile(
             initial_day,
             self.growing_days + 1,
-            noise_coeff*np.array([0.02, 0.01, 0.02, 0.01]) if self.noisy_disturbance else 0.0,
+            noise_coeff * np.array([0.02, 0.01, 0.02, 0.01])
+            if self.noisy_disturbance
+            else 0.0,
         )
 
     def pick_disturbance(

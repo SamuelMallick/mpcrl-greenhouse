@@ -48,7 +48,12 @@ class LearningMpc(Mpc[cs.SX]):
             greenhouse_env.nd,
             greenhouse_env.ts,
         )
-        u_min, u_max, du_lim, y_range = Model.get_u_min(), Model.get_u_max(), Model.get_du_lim(), Model.get_output_range()
+        u_min, u_max, du_lim, y_range = (
+            Model.get_u_min(),
+            Model.get_u_max(),
+            Model.get_du_lim(),
+            Model.get_output_range(),
+        )
         # initialize base mpc
         nlp = Nlp[cs.SX](debug=False)
         super().__init__(nlp, prediction_horizon=prediction_horizon)
@@ -115,14 +120,14 @@ class LearningMpc(Mpc[cs.SX]):
                 y[k],
                 ">=",
                 (1 + olb) * y_min_k
-                - s[:, k] # / ((1 + oub) * y_max_k - (1 + olb) * y_min_k),
+                - s[:, k],  # / ((1 + oub) * y_max_k - (1 + olb) * y_min_k),
             )
             self.constraint(
                 f"y_max_{k}",
                 y[k],
                 "<=",
                 (1 + oub) * y_max_k
-                + s[:, k] # / ((1 + oub) * y_max_k - (1 + olb) * y_min_k),
+                + s[:, k],  # / ((1 + oub) * y_max_k - (1 + olb) * y_min_k),
             )
 
         if constrain_control_rate:
@@ -140,7 +145,7 @@ class LearningMpc(Mpc[cs.SX]):
 
         # penalize constraint violations
         for k in range(N + 1):
-            obj += (self.discount_factor**k) * cs.dot(w, s[:, k]/y_range)
+            obj += (self.discount_factor**k) * cs.dot(w, s[:, k] / y_range)
 
         # reward step wise weight increase
         for k in range(1, N + 1):
