@@ -13,10 +13,10 @@ class Test(DefaultTest):
     test_ID = "test_83"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
-    num_episodes = 100
+    num_episodes = 200
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
-    noise_coeff = 1.0 # scales the noise generation
+    noise_coeff = 0.5 # scales the noise generation
     initial_day: int | None = 0 if disturbance_type == "single" else None
     clip_action_variation = True
     normalize_reward = False
