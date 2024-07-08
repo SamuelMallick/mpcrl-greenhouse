@@ -91,6 +91,7 @@ def make_env(
 
 
 def train_ddpg(
+    agent_num: int,
     episodes: int,
     days_per_episode: int,
     learning_rate: float,
@@ -107,6 +108,8 @@ def train_ddpg(
 
     Parameters
     ----------
+    agent_num : int
+        Number of this current agent, used for saving.
     episodes : int
         Number of episodes to train the agent for.
     days_per_episode : int
@@ -179,6 +182,9 @@ def train_ddpg(
     # launch the training
     total_timesteps = steps_per_episode * episodes
     model.learn(total_timesteps=total_timesteps, log_interval=1, callback=cb)
+
+    # save to disk
+    model.save(f"ddpg_agent_{agent_num}")
 
     # return as data the `MonitorEpisodes` from the training and evaluation envs - ugly,
     # but they must be digged out from the `VecNormalize` wrapper

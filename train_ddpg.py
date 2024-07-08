@@ -24,6 +24,7 @@ def do_training(
 
     def fun(n: int):
         return train_ddpg(
+            agent_num=n,
             episodes=episodes,
             days_per_episode=days_per_episode,
             learning_rate=1e-3,
