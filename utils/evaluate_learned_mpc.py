@@ -9,16 +9,15 @@ sys.path.append(os.getcwd())
 
 import casadi as cs
 import numpy as np
-from gymnasium.wrappers import NormalizeReward, TimeLimit
+from gymnasium.wrappers import TimeLimit
 
 # import networkx as netx
 from mpcrl import LearnableParameter, LearnableParametersDict
-from mpcrl.wrappers.agents import Evaluate, Log, RecordUpdates
+from mpcrl.wrappers.agents import Log, RecordUpdates
 from mpcrl.wrappers.envs import MonitorEpisodes
 
 from agents.greenhouse_agent import GreenhouseLearningAgent
 from greenhouse.env import LettuceGreenHouse
-from greenhouse.model import Model
 from mpcs.learning import LearningMpc
 from utils.plot import plot_greenhouse
 
@@ -37,7 +36,9 @@ with open(
     "rb",
 ) as file:
     data = pickle.load(file)
-params = {key: val[-1] for key, val in data["param_dict"].items()}  # take final value for learned parameters
+params = {
+    key: val[-1] for key, val in data["param_dict"].items()
+}  # take final value for learned parameters
 
 episode_len = test.ep_len
 eval_env = MonitorEpisodes(
@@ -60,7 +61,7 @@ mpc = LearningMpc(
     test=test,
     prediction_model=prediction_model,
     np_random=np_random,
-    constrain_control_rate=True
+    constrain_control_rate=True,
 )
 # assert that the parameters loaded are the same as the ones in the MPC class
 if set(params.keys()) != set(mpc.learnable_pars_init.keys()):
@@ -68,43 +69,41 @@ if set(params.keys()) != set(mpc.learnable_pars_init.keys()):
 
 learnable_pars = LearnableParametersDict[cs.SX](
     (
-        LearnableParameter(
-            name,
-            val.shape,
-            val,
-            sym=mpc.parameters[name]
-        )
+        LearnableParameter(name, val.shape, val, sym=mpc.parameters[name])
         for name, val in params.items()
     )
 )
 
 agent = Log(  # type: ignore[var-annotated]
-        RecordUpdates(
-            GreenhouseLearningAgent(
-                mpc=mpc,
-                update_strategy=test.update_strategy,
-                discount_factor=mpc.discount_factor,
-                optimizer=test.optimizer,
-                learnable_parameters=learnable_pars,
-                fixed_parameters=mpc.fixed_pars,
-                exploration=test.exploration,
-                experience=test.experience,
-                hessian_type=test.hessian_type,
-                record_td_errors=True,
-            )
-        ),
-        level=logging.DEBUG,
-        log_frequencies={"on_timestep_end": 100},
-        to_file=True,
-        log_name=f"log_eval_{test.test_ID}",
-    )
+    RecordUpdates(
+        GreenhouseLearningAgent(
+            mpc=mpc,
+            update_strategy=test.update_strategy,
+            discount_factor=mpc.discount_factor,
+            optimizer=test.optimizer,
+            learnable_parameters=learnable_pars,
+            fixed_parameters=mpc.fixed_pars,
+            exploration=test.exploration,
+            experience=test.experience,
+            hessian_type=test.hessian_type,
+            record_td_errors=True,
+        )
+    ),
+    level=logging.DEBUG,
+    log_frequencies={"on_timestep_end": 100},
+    to_file=True,
+    log_name=f"log_eval_{test.test_ID}",
+)
 # evaluate train
 agent.evaluate(
     env=eval_env,
     episodes=100,
     seed=1,
     raises=False,
-    env_reset_options={"initial_day": test.initial_day, "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0}
+    env_reset_options={
+        "initial_day": test.initial_day,
+        "noise_coeff": test.noise_coeff if test.noisy_disturbance else 1.0,
+    }
     if test.disturbance_type == "single"
     else {},
 )
