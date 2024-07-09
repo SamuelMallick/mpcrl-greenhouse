@@ -144,7 +144,7 @@ class Model:
             return np.array([1e6, 1.6, 15, 70])  # 1e6 replaces infinity
         else:
             return np.array([1e6, 1.6, 20, 70])
-        
+
     @staticmethod
     def get_output_range() -> np.ndarray:
         """Gets the range of output values.

@@ -30,8 +30,8 @@ class AugmentedObservationWrapper(ObservationWrapper):
         lby, uby = [-np.inf, 0.0, -273.15, 0.0], np.full(nx, np.inf)
         lbd, ubd = [0.0, 0.0, -273.15, 0.0], np.full(nd, np.inf)
         self.observation_space = spaces.Box(
-            np.concatenate((lby, lbd)),  # act.low
-            np.concatenate((uby, ubd)),  # act.high
+            np.concatenate((lby, lbd, act.low)),
+            np.concatenate((uby, ubd, act.high)),
             dtype=act.dtype,
             seed=act.np_random,
         )
@@ -41,7 +41,7 @@ class AugmentedObservationWrapper(ObservationWrapper):
         output = Model.output(state, env.p)
         output[0] -= env.previous_lettuce_yield
         new_state = np.concatenate(
-            (output, env.current_disturbance), axis=None  # env.previous_action
+            (output, env.current_disturbance, env.previous_action), axis=None
         )
         assert self.observation_space.contains(new_state), "Invalid observation."
         return new_state
@@ -62,9 +62,16 @@ def make_env(
     greenhouse = LettuceGreenHouse(
         growing_days=days,
         model_type="continuous",
+        cost_parameters_dict={
+            "c_u": [10, 1, 1],
+            "c_y": 0.0,
+            "c_dy": 100,
+            "w_y": np.full((1, 4), 1e5),
+        },
         disturbance_profiles_type="single",
         noisy_disturbance=True,
         testing="none",
+        clip_action_variation=True,
     )
     max_episode_steps = days * LettuceGreenHouse.steps_per_day
     env = MonitorEpisodes(TimeLimit(greenhouse, max_episode_steps=max_episode_steps))
@@ -75,6 +82,7 @@ def make_env(
     # add wrappers for SB3
     env = Monitor(env)
     venv = DummyVecEnv([lambda: env])
+    venv.set_options({"initial_day": 0, "noise_coeff": 1.0})
     venv = VecNormalize(
         venv, not evaluation, clip_obs=np.inf, clip_reward=np.inf, gamma=gamma
     )
@@ -83,6 +91,7 @@ def make_env(
 
 
 def train_ddpg(
+    agent_num: int,
     episodes: int,
     days_per_episode: int,
     learning_rate: float,
@@ -99,6 +108,8 @@ def train_ddpg(
 
     Parameters
     ----------
+    agent_num : int
+        Number of this current agent, used for saving.
     episodes : int
         Number of episodes to train the agent for.
     days_per_episode : int
@@ -163,14 +174,17 @@ def train_ddpg(
     eval_env, _ = make_env(gamma, days_per_episode, evaluation=True, seed=seed)
     cb = EvalCallback(
         eval_env=eval_env,
-        n_eval_episodes=10,
-        eval_freq=steps_per_episode * int(episodes / 10),
+        n_eval_episodes=20,
+        eval_freq=int(steps_per_episode * episodes / 50),
         verbose=verbose,
     )
 
     # launch the training
     total_timesteps = steps_per_episode * episodes
     model.learn(total_timesteps=total_timesteps, log_interval=1, callback=cb)
+
+    # save to disk
+    model.save(f"ddpg_agent_{agent_num}")
 
     # return as data the `MonitorEpisodes` from the training and evaluation envs - ugly,
     # but they must be digged out from the `VecNormalize` wrapper
