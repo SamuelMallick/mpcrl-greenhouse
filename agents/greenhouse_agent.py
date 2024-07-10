@@ -17,9 +17,11 @@ class GreenhouseAgent(Agent):
             The disturbance.
         """
         self.fixed_parameters["d"] = d[:, :-1]
+        y_min = Model.get_output_min(d)
+        y_max = Model.get_output_max(d)
         for k in range(self.V.prediction_horizon + 1):
-            self.fixed_parameters[f"y_min_{k}"] = Model.get_output_min(d[:, [k]])
-            self.fixed_parameters[f"y_max_{k}"] = Model.get_output_max(d[:, [k]])
+            self.fixed_parameters[f"y_min_{k}"] = y_min[:, k]
+            self.fixed_parameters[f"y_max_{k}"] = y_max[:, k]
 
     def on_episode_start(
         self, env: LettuceGreenHouse, episode: int, state: np.ndarray
