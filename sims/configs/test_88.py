@@ -13,7 +13,7 @@ class Test(DefaultTest):
     test_ID = "test_88"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
-    num_episodes = 200
+    num_episodes = 500
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
     noise_coeff = 1.0 # scales the noise generation
