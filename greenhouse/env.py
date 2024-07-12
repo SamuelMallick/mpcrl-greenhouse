@@ -90,18 +90,12 @@ class LettuceGreenHouse(gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floatin
             dynamics_rk4_fallback = cs.Function(
                 "fallback", [x, u, d], [Model.rk4_step(x, u, d, p, ts, steps_per_ts=50)]
             )
-            dynamics_rk4_fallback_fallback = cs.Function(
-                "fallback", [x, u, d], [Model.rk4_step(x, u, d, p, ts, steps_per_ts=1)]
-            )
 
             def inner_dynamics(x, u, d):
                 try:
                     return dynamics_cvodes(x, u, d)
                 except RuntimeError:
-                    x_new = dynamics_rk4_fallback(x, u, d)
-                    if np.isnan(x_new).any():
-                        x_new = dynamics_rk4_fallback_fallback(x, u, d)
-                    return x_new
+                    return dynamics_rk4_fallback(x, u, d)
 
         elif model_type == "rk4":
             xf = Model.rk4_step(x, u, d, p, ts)
