@@ -120,10 +120,9 @@ class Model:
         """
         if d.shape[0] != 4:
             raise ValueError("Disturbance vector must have 4 elements.")
-        if d[0] < 10:
-            return np.array([0, 0, 10, 0])
-        else:
-            return np.array([0, 0, 15, 0])
+        y_min = np.zeros_like(d)
+        y_min[2] = np.where(d[0] < 10, 10, 15)
+        return y_min
 
     @staticmethod
     def get_output_max(d: np.ndarray) -> np.ndarray:
@@ -140,10 +139,12 @@ class Model:
             The maximum output values."""
         if d.shape[0] != 4:
             raise ValueError("Disturbance vector must have 4 elements.")
-        if d[0] < 10:
-            return np.array([1e6, 1.6, 15, 70])  # 1e6 replaces infinity
-        else:
-            return np.array([1e6, 1.6, 20, 70])
+        y_max = np.empty_like(d)
+        y_max[0] = 1e6  # 1e6 replaces infinity
+        y_max[1] = 1.6
+        y_max[2] = np.where(d[0] < 10, 15, 20)
+        y_max[3] = 70
+        return y_max
 
     @staticmethod
     def get_output_range() -> np.ndarray:

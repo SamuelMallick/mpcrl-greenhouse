@@ -10,6 +10,7 @@ __pycache__/
 *.pkl
 data_large/
 *.pkl
+*.zip
 logs/
 
 # Distribution / packaging
