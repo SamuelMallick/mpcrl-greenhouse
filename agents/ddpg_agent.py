@@ -183,9 +183,11 @@ def train_ddpg(
     total_timesteps = steps_per_episode * episodes
     model.learn(total_timesteps=total_timesteps, log_interval=1, callback=cb)
 
-    # save to disk
+    # save to disk the trained agent and the training env (it has the normalizations)
+    env = model.get_env()
+    env.save(f"ddpg_env_{agent_num}.pkl")
     model.save(f"ddpg_agent_{agent_num}")
 
     # return as data the `MonitorEpisodes` from the training and evaluation envs - ugly,
     # but they must be digged out from the `VecNormalize` wrapper
-    return model.get_env().envs[0].env.env.env, eval_env.envs[0].env.env.env
+    return env.envs[0].env.env.env, eval_env.envs[0].env.env.env
