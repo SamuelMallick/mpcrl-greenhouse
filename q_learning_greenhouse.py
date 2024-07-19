@@ -19,8 +19,6 @@ from greenhouse.model import Model
 from mpcs.learning import LearningMpc
 from utils.plot import plot_greenhouse
 
-np_random = np.random.default_rng(1)
-
 STORE_DATA = True
 PLOT = True
 
@@ -30,10 +28,11 @@ if len(sys.argv) > 1:
     mod = importlib.import_module(f"sims.configs.{config_file}")
     test = mod.Test()
 else:
-    from sims.configs.default import DefaultTest  # type: ignore
+    from sims.configs.test_63 import Test  # type: ignore
 
-    test = DefaultTest()
+    test = Test()
 
+np_random = np.random.default_rng(test.seed)
 
 episode_len = test.ep_len
 train_env = MonitorEpisodes(
@@ -126,13 +125,13 @@ agent = Evaluate(
     }
     if test.disturbance_type == "single"
     else {},
-    seed=1,
+    seed=test.seed,
 )
 # evaluate train
 agent.train(
     env=train_env,
     episodes=test.num_episodes,
-    seed=1,
+    seed=test.seed,
     raises=False,
     env_reset_options={
         "initial_day": test.initial_day,
