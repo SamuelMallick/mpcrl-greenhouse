@@ -10,7 +10,7 @@ from sims.configs.default import DefaultTest
 # Test 80 but different seed
 class Test(DefaultTest):
     # simulation and training params
-    test_ID = "test_91"
+    test_ID = "test_92"
     num_days = 40
     ep_len = num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 100
