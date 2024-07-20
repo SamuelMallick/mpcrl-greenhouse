@@ -21,6 +21,7 @@ class DefaultTest:
     clip_action_variation = False
     normalize_reward = False
     seed = 1
+    model_parameters_from_seed = True
 
     # mpc and model params
     base_model: Literal[
@@ -67,12 +68,12 @@ class DefaultTest:
         hook="on_episode_end",
         strength=0.1 * np.array([[1.2], [7.5], [150]]),
         mode="additive",
-        seed=0,
+        seed=seed-1,
     )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
         sample_size=2 * ep_len,
         include_latest=ep_len,
-        seed=0,
+        seed=seed-1,
     )
     hessian_type = "approx"
