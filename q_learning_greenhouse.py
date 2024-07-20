@@ -32,7 +32,8 @@ else:
 
     test = Test()
 
-np_random = np.random.default_rng(test.seed)
+
+np_random = np.random.default_rng(test.seed if test.model_parameters_from_seed else 1)
 
 episode_len = test.ep_len
 train_env = MonitorEpisodes(
