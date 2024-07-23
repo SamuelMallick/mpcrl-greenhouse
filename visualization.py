@@ -8,6 +8,9 @@ import numpy as np
 from greenhouse.env import LettuceGreenHouse
 from greenhouse.model import Model
 
+from utils.get_constraint_violations import get_constraint_violations
+from utils.tikz import save2tikz
+
 plt.style.use("bmh")
 
 
@@ -61,12 +64,7 @@ if TD_in_data:
 X = data["X"]
 d = data["d"]
 U = data["U"]
-y = Model.output(X[:, :-1].transpose(2, 0, 1), p).transpose(1, 2, 0)
-y_min = Model.get_output_min(d[: X.shape[0]].transpose()).transpose()
-y_max = Model.get_output_max(d[: X.shape[0]].transpose()).transpose()
-viols_lb = np.maximum(0, (y_min - y) / (y_max - y_min))
-viols_ub = np.maximum(0, (y - y_max) / (y_max - y_min))
-viols = (viols_lb + viols_ub).sum(-1)
+viols, y, y_min, y_max = get_constraint_violations(X, U, d)
 du_lim = Model.get_du_lim()
 viols_du = np.maximum(0, (np.abs(U[:, 1:, :] - U[:, :-1, :]) - du_lim) / du_lim)
 t_axs[VIOL_Y_indx].plot(viols.reshape(-1), "o", markersize=1)
@@ -131,6 +129,7 @@ axs[0, 0].set_title("First ep")
 axs[0, 1].set_title("Last ep")
 axs[-1, 0].set_xlabel("Timestep")
 axs[-1, 1].set_xlabel("Timestep")
+# save2tikz(plt.gcf())
 
 # plot first and last episodes' control inputs
 U_min = np.tile(Model.get_u_min(), (U.shape[1], 1))
@@ -160,5 +159,6 @@ fig.suptitle("Disturbances")
 # e_axs[TD_indx].set_ylim(-10e9, 10e9)
 # t_axs[R_indx].set_ylim(0, 2e5)
 # e_axs[R_indx].set_ylim(0, 2e8)
+e_axs[YIELD_indx].set_ylim(100, 150)
 
 plt.show()
