@@ -1,12 +1,17 @@
 import numpy as np
 from mpcrl import Agent, LstdQLearningAgent
-
+import casadi as cs
+from csnlp import Solution
 from greenhouse.env import LettuceGreenHouse
 from greenhouse.model import Model
 
 
 class GreenhouseAgent(Agent):
     """An agent controlling the greenhouse."""
+
+    solve_times: list[
+        list[float]
+    ] = []  # list of lists. First dim for episodes, second for timesteps
 
     def set_mpc_parameters(self, d: np.ndarray) -> None:
         """Sets the disturbance and constraints parameters of the agent's MPC.
@@ -37,6 +42,7 @@ class GreenhouseAgent(Agent):
         state : np.ndarray
             The initial state.
         """
+        self.solve_times.append([])
         d = env.get_current_disturbance(self.V.prediction_horizon + 1)
         self.set_mpc_parameters(d)
         return super().on_episode_start(env, episode, state)
@@ -55,6 +61,19 @@ class GreenhouseAgent(Agent):
         d = env.get_current_disturbance(self.V.prediction_horizon + 1)
         self.set_mpc_parameters(d)
         return super().on_env_step(env, episode, timestep)
+
+    def state_value(
+        self,
+        state,
+        deterministic: bool = False,
+        vals0=None,
+        action_space= None,
+        **kwargs,
+    ) -> tuple[cs.DM, Solution]:
+        action, sol = super().state_value(state, deterministic, vals0, action_space, **kwargs)
+        if "t_wall_total" in sol.stats:
+            self.solve_times[-1].append(sol.stats["t_wall_total"])
+        return action, sol
 
 
 class GreenhouseSampleAgent(GreenhouseAgent):

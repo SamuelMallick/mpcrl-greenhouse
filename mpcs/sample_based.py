@@ -153,6 +153,7 @@ class SampleBasedMpc(ScenarioBasedMpc[cs.SX]):
             "show_eval_warnings": False,
             "warn_initial_bounds": True,
             "print_time": False,
+            "record_time": True,
             "bound_consistency": True,
             "calc_lam_x": True,
             "calc_lam_p": False,
