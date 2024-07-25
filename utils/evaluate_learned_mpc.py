@@ -124,6 +124,9 @@ X_tr = np.asarray(eval_env.observations)
 U_tr = np.asarray(eval_env.actions).squeeze(-1)
 R_tr = np.asarray(eval_env.rewards)
 d_tr = np.asarray(eval_env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
+
+print(f"Average solve time = {np.mean(agent.solve_times)}")
+
 if PLOT:  # plot training data
     plot_greenhouse(X_tr, U_tr, d_tr, R_tr, TD)
 

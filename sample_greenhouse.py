@@ -85,6 +85,7 @@ for initial_day in initial_days:
     d = np.asarray(env.disturbance_profiles_all_episodes).transpose(0, 2, 1)
 
     print(f"Return = {R.sum(axis=1)}")
+    print(f"Average solve time = {np.mean(agent.solve_times)}")
 
     if PLOT:
         plot_greenhouse(X, U, d, R, None)
