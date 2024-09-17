@@ -18,8 +18,13 @@ from stable_baselines3.common.vec_env import VecNormalize
 from agents.ddpg_agent import make_env
 from utils.plot import plot_greenhouse
 
+# read which folder to evaluate from the command line
+if len(sys.argv) != 2:
+    raise ValueError("Please provide a folder to evaluate the agents from.")
+folder = Path(sys.argv[1])
+assert folder.is_dir(), f"Provided path {folder} is not a directory."
+
 # main options
-folder = "results/ddpg_lr1e-3_rk4_1"
 n_eval_episodes = 100
 days_per_episode = 40
 device = "cuda:0"
@@ -57,7 +62,7 @@ def evaluate_single(filename: Path) -> None:
     eval_env_loaded.training = False  # set to evaluation mode
 
     # create an evaluation environment and launch evaluation
-    evaluate_policy(model, eval_env, n_eval_episodes=n_eval_episodes)
+    evaluate_policy(model, eval_env_loaded, n_eval_episodes=n_eval_episodes)
 
     # extract our `MonitorEpisodes` wrapper from the SB3 vectorized env
     eval_env = eval_env.envs[0].env.env.env
@@ -72,7 +77,6 @@ def evaluate_single(filename: Path) -> None:
 
 # find in the given folder all agents' .zip files, and evaluate each of them - each must
 # have a corresponding env's .pkl file with the same naming convention
-folder = Path(folder)
 data = [evaluate_single(fn) for fn in folder.glob("ddpg_*.zip")]
 
 # print timings
