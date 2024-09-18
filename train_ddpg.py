@@ -27,7 +27,7 @@ def do_training(
             agent_num=n,
             episodes=episodes,
             days_per_episode=days_per_episode,
-            learning_rate=1e-3,
+            learning_rate=1e-5,
             gradient_threshold=1.0,
             l2_regularization=1e-5,
             batch_size=64,
