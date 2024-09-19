@@ -15,10 +15,10 @@ from utils.plot import plot_greenhouse
 
 np_random = np.random.default_rng(1)
 
-STORE_DATA = True
-PLOT = False
+STORE_DATA = False
+PLOT = True
 
-days = 40
+days = 1
 episode_len = days * LettuceGreenHouse.steps_per_day  # x days of 15 minute timesteps
 env = MonitorEpisodes(
     TimeLimit(
@@ -33,7 +33,7 @@ env = MonitorEpisodes(
         max_episode_steps=int(episode_len),
     )
 )
-num_episodes = 100
+num_episodes = 1
 initial_days = [0]
 
 prediction_model: Literal["euler", "rk4"] = "rk4"

@@ -1,12 +1,13 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # Test 80 but different seed, and expl/exp using new seed, model params not from seed
 class Test(DefaultTest):
     # simulation and training params
@@ -16,7 +17,7 @@ class Test(DefaultTest):
     num_episodes = 100
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
-    noise_coeff = 1.0 # scales the noise generation
+    noise_coeff = 1.0  # scales the noise generation
     initial_day: int | None = 0 if disturbance_type == "single" else None
     clip_action_variation = True
     normalize_reward = False
@@ -67,7 +68,7 @@ class Test(DefaultTest):
     )
     exploration = None
     experience = ExperienceReplay(
-        maxlen= 3 * ep_len,
+        maxlen=3 * ep_len,
         sample_size=2 * ep_len,
         include_latest=1 * ep_len,
         seed=seed,

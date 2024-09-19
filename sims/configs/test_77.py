@@ -1,12 +1,13 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # This is a re run of 65 with the reward normalization actually implemented
 class Test(DefaultTest):
     # simulation and training params
@@ -64,7 +65,7 @@ class Test(DefaultTest):
     )
     exploration = None
     experience = ExperienceReplay(
-        maxlen= 3 * ep_len,
+        maxlen=3 * ep_len,
         sample_size=2 * ep_len,
         include_latest=1 * ep_len,
         seed=0,

@@ -110,14 +110,14 @@ agent = Evaluate(
             )
         ),
         level=logging.DEBUG,
-        log_frequencies={"on_timestep_end": 100},
+        log_frequencies={"on_timestep_end": 1},
         to_file=True,
         log_name=f"log_{test.test_ID}",
     ),
     eval_env,
     hook="on_episode_end",
     frequency=10,  # eval once every 10 episodes
-    eval_immediately=True,
+    eval_immediately=False,
     deterministic=True,
     raises=False,
     env_reset_options={

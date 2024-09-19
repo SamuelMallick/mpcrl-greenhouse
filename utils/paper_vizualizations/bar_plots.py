@@ -1,4 +1,3 @@
-from itertools import product
 import os
 import pickle
 import sys
@@ -7,9 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 sys.path.append(os.getcwd())
+from greenhouse.model import Model
 from utils.get_constraint_violations import get_constraint_violations
 from utils.tikz import save2tikz
-from greenhouse.model import Model
 
 plt.rc("text", usetex=True)
 plt.rc("font", size=14)
@@ -34,15 +33,10 @@ mpc_rl_files = [
     "results/test_93_eval_final.pkl",
     "results/test_80_eval_final.pkl",
 ]
-# ddpg_files = [
-#     "results/ddpg_agent_0_eval_learned.pkl",
-#     "results/ddpg_agent_1_eval_learned.pkl",
-#     "results/ddpg_agent_2_eval_learned.pkl",
-# ]
 ddpg_files = [
-    "results/ddpg_eval_0.pkl",
-    "results/ddpg_eval_1.pkl",
-    "results/ddpg_eval_2.pkl",
+    "results/ddpg_agent_0_eval_learned.pkl",
+    "results/ddpg_agent_1_eval_learned.pkl",
+    "results/ddpg_agent_2_eval_learned.pkl",
 ]
 
 p = Model.get_true_parameters()
@@ -77,9 +71,7 @@ ddpg_data = []
 for file_name in ddpg_files:
     with open(file_name, "rb") as file:
         data_ = pickle.load(file)
-        ddpg_ = {
-            key: val[:20] for key, val in data_.items() if isinstance(val, np.ndarray)
-        }
+        ddpg_ = {key: val for key, val in data_.items() if isinstance(val, np.ndarray)}
         ddpg_data.append(ddpg_)
 data.append(
     {key: np.concatenate([o[key] for o in ddpg_data]) for key in ["X", "U", "R", "d"]}
@@ -97,9 +89,7 @@ YIELD_indx = 2
 EPI_indx = 3
 # plot environment rewards
 R = [np.sum(o["R"], axis=1) for o in data]
-mean_R, std_R = zip(
-    *((np.mean(r), np.std(r)) for r in R)
-)
+mean_R, std_R = zip(*((np.mean(r), np.std(r)) for r in R))
 ep_axs[R_indx].bar(labels, mean_R, color=colors)
 ep_axs[R_indx].errorbar(
     labels, mean_R, std_R, marker=None, ls="none", color="black", capsize=7
@@ -134,9 +124,7 @@ ep_axs[VIOL_indx].set_ylabel(r"$\Psi$")
 
 # plot yields
 y_final = [y[:, -1, 0] for y in y_full]
-mean_y, std_y = zip(
-    *((np.mean(y), np.std(y)) for y in y_final)
-)
+mean_y, std_y = zip(*((np.mean(y), np.std(y)) for y in y_final))
 ep_axs[YIELD_indx].bar(labels, mean_y, color=colors)
 ep_axs[YIELD_indx].errorbar(
     labels, mean_y, std_y, marker=None, ls="none", color="black", capsize=7
@@ -166,9 +154,7 @@ EPI = [
 ]  # converting co2 from mg to kg
 
 # plot economic performance index
-mean_EPI, std_EPI = zip(
-    *((np.mean(epi), np.std(epi)) for epi in EPI)
-)
+mean_EPI, std_EPI = zip(*((np.mean(epi), np.std(epi)) for epi in EPI))
 ep_axs[EPI_indx].bar(labels, mean_EPI, color=colors)
 ep_axs[EPI_indx].errorbar(
     labels, mean_EPI, std_EPI, marker=None, ls="none", color="black", capsize=7
@@ -176,8 +162,7 @@ ep_axs[EPI_indx].errorbar(
 ep_axs[EPI_indx].set_xticks(list(range(len(labels))), labels)
 ep_axs[EPI_indx].set_ylabel(r"$P$")
 
-# save2tikz(plt.gcf())
-
+save2tikz(plt.gcf())
 
 
 plt.show()

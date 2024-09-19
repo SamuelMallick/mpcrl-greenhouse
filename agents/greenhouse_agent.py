@@ -1,7 +1,8 @@
-import numpy as np
-from mpcrl import Agent, LstdQLearningAgent
 import casadi as cs
+import numpy as np
 from csnlp import Solution
+from mpcrl import Agent, LstdQLearningAgent
+
 from greenhouse.env import LettuceGreenHouse
 from greenhouse.model import Model
 
@@ -67,10 +68,12 @@ class GreenhouseAgent(Agent):
         state,
         deterministic: bool = False,
         vals0=None,
-        action_space= None,
+        action_space=None,
         **kwargs,
     ) -> tuple[cs.DM, Solution]:
-        action, sol = super().state_value(state, deterministic, vals0, action_space, **kwargs)
+        action, sol = super().state_value(
+            state, deterministic, vals0, action_space, **kwargs
+        )
         if "t_wall_total" in sol.stats:
             self.solve_times[-1].append(sol.stats["t_wall_total"])
         return action, sol

@@ -1,14 +1,15 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # Making some of the changes from the dicussion with Pippo 25-06
-#Trying first order gradient descent, like 58, but lower lr - exploded
+# Trying first order gradient descent, like 58, but lower lr - exploded
 class Test(DefaultTest):
     # simulation and training params
     test_ID = "test_59"
@@ -64,7 +65,7 @@ class Test(DefaultTest):
     )
     exploration = None
     experience = ExperienceReplay(
-        maxlen= 1 * ep_len,
+        maxlen=1 * ep_len,
         sample_size=1 * ep_len,
         include_latest=1 * ep_len,
         seed=0,

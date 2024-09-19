@@ -1,13 +1,13 @@
 from typing import Any, Literal
 
 import numpy as np
+from default import DefaultTest
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.exploration import EpsilonGreedyExploration
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
 
-from default import DefaultTest
 
 class Test(DefaultTest):
     # simulation and training params

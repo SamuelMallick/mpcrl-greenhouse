@@ -1,12 +1,17 @@
-import numpy as np
-import sys
 import os
+import sys
+
+import numpy as np
+
 sys.path.append(os.getcwd())
 from greenhouse.model import Model
 
-def get_constraint_violations(X: np.ndarray, U: np.ndarray, d: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+def get_constraint_violations(
+    X: np.ndarray, U: np.ndarray, d: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Calculates constraint violations for a given dataset.
-    
+
     Parameters
     ----------
     X : np.ndarray
@@ -15,7 +20,7 @@ def get_constraint_violations(X: np.ndarray, U: np.ndarray, d: np.ndarray) -> tu
         The action dataset.
     d : np.ndarray
         The disturbance dataset.
-        
+
     Returns
     -------
     tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]

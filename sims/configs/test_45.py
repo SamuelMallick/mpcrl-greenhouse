@@ -1,12 +1,12 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
 
 # trying faster updated with smaller learning rate than test 43 - also crashed with param out of bounds
 class Test(DefaultTest):

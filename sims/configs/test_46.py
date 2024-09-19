@@ -1,12 +1,13 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # trying EVEN smaller weight on violation than test 42 - MISTAKE - didn't change initial w
 class Test(DefaultTest):
     # simulation and training params

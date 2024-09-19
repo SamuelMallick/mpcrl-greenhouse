@@ -1,12 +1,14 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
+from mpcrl.core.exploration import EpsilonGreedyExploration
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # Repeat of 53 but with lower penalty
 class Test(DefaultTest):
     # simulation and training params
@@ -26,7 +28,12 @@ class Test(DefaultTest):
     prediction_model = "rk4"  # mpc prediction model
     horizon = 24
     discount_factor = 0.99
-    rl_cost = {"c_u": [0, 0, 0], "c_y": 0.0, "c_dy": 0, "w_y": 1e1 * np.array([[0, 0, 0, 1]])}
+    rl_cost = {
+        "c_u": [0, 0, 0],
+        "c_y": 0.0,
+        "c_dy": 0,
+        "w_y": 1e1 * np.array([[0, 0, 0, 1]]),
+    }
     p_perturb = list(range(Model.n_params))  # index of parameters that are perturbed
 
     # learning params
@@ -40,7 +47,7 @@ class Test(DefaultTest):
         "oub": np.zeros((4,)),
         "y_fin": 0 * np.ones((1,)),
         "c_y": 0 * np.ones((1,)),
-        "c_u": 0 *np.array([10, 1, 1]),
+        "c_u": 0 * np.array([10, 1, 1]),
     }
     # bounds on learnable pars
     fixed_pars: dict[str, Any] = {}

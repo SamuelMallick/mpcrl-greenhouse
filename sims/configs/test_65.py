@@ -1,13 +1,14 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
 # This is 64 BEST YET but with long windows
+
 
 # !! - stuffed up, normalized reward not present in tests untill test 76. However from test 63 onwards the slack normalization was changed
 class Test(DefaultTest):
@@ -66,7 +67,7 @@ class Test(DefaultTest):
     )
     exploration = None
     experience = ExperienceReplay(
-        maxlen= 3 * ep_len,
+        maxlen=3 * ep_len,
         sample_size=2 * ep_len,
         include_latest=1 * ep_len,
         seed=0,

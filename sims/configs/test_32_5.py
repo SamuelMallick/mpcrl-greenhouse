@@ -5,8 +5,8 @@ from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
 
 class Test(DefaultTest):
     # simulation and training params
@@ -28,7 +28,7 @@ class Test(DefaultTest):
     rl_cost = {"c_u": [10, 1, 1], "c_y": 0.0, "c_dy": 100, "w_y": 1e5 * np.ones((1, 4))}
     p_perturb = list(range(Model.n_params))  # index of parameters that are perturbed
     clip_action_variation = False
-    
+
     # learning params
     p_learn = list(range(Model.n_params))  # index of parameters to learn
     # fixed pars and learable pars

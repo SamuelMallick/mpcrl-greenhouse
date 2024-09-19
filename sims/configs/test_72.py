@@ -1,18 +1,19 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # This is 70 but with ep len 24*5 and update every 24 steps
 class Test(DefaultTest):
     # simulation and training params
     test_ID = "test_72"
     num_days = 40
-    ep_len = 24*5 # num_days * 24 * 4  # 'x' days of 15 minute timesteps
+    ep_len = 24 * 5  # num_days * 24 * 4  # 'x' days of 15 minute timesteps
     num_episodes = 50
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = False
@@ -64,7 +65,7 @@ class Test(DefaultTest):
     )
     exploration = None
     experience = ExperienceReplay(
-        maxlen= 24,
+        maxlen=24,
         sample_size=24,
         include_latest=24,
         seed=0,

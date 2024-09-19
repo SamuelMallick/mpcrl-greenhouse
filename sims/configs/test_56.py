@@ -1,12 +1,13 @@
 from typing import Any, Literal
-from mpcrl.core.exploration import EpsilonGreedyExploration
+
 import numpy as np
 from mpcrl import ExperienceReplay, UpdateStrategy, optim
 from mpcrl.core.schedulers import ExponentialScheduler
 
 from greenhouse.model import Model
-
 from sims.configs.default import DefaultTest
+
+
 # Making some of the changes from the dicussion with Pippo 25-06
 # this is 39 with bounded param changes and 1 dist prof
 # this is 55 with no exp
@@ -65,7 +66,7 @@ class Test(DefaultTest):
     )
     exploration = None
     experience = ExperienceReplay(
-        maxlen= 3 * ep_len,
+        maxlen=3 * ep_len,
         sample_size=2 * ep_len,
         include_latest=1 * ep_len,
         seed=0,

@@ -7,9 +7,7 @@ import numpy as np
 
 from greenhouse.env import LettuceGreenHouse
 from greenhouse.model import Model
-
 from utils.get_constraint_violations import get_constraint_violations
-from utils.tikz import save2tikz
 
 plt.style.use("bmh")
 

@@ -16,7 +16,7 @@ class DefaultTest:
     num_episodes = 50
     disturbance_type: Literal["multiple", "single"] = "single"
     noisy_disturbance = True
-    noise_coeff = 1.0 # scales the noise generation
+    noise_coeff = 1.0  # scales the noise generation
     initial_day: int | None = 0 if disturbance_type == "single" else None
     clip_action_variation = False
     normalize_reward = False
@@ -68,12 +68,12 @@ class DefaultTest:
         hook="on_episode_end",
         strength=0.1 * np.array([[1.2], [7.5], [150]]),
         mode="additive",
-        seed=seed-1,
+        seed=seed - 1,
     )
     experience = ExperienceReplay(
         maxlen=3 * ep_len,
         sample_size=2 * ep_len,
         include_latest=ep_len,
-        seed=seed-1,
+        seed=seed - 1,
     )
     hessian_type = "approx"
