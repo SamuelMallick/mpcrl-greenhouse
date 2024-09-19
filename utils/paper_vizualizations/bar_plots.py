@@ -162,7 +162,7 @@ ep_axs[EPI_indx].errorbar(
 ep_axs[EPI_indx].set_xticks(list(range(len(labels))), labels)
 ep_axs[EPI_indx].set_ylabel(r"$P$")
 
-save2tikz(plt.gcf())
+# save2tikz(plt.gcf())
 
 
 plt.show()

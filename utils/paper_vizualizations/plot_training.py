@@ -119,6 +119,6 @@ for i, key in enumerate(most_changed_params_mean[:num_params]):
     )
     axs[i].set_ylabel(key)
 axs[-1].set_xlabel("Growth cycle")
-save2tikz(plt.gcf())
+# save2tikz(plt.gcf())
 
 plt.show()
