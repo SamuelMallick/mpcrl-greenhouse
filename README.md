@@ -1,11 +1,11 @@
 # Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control
 
 [![Source Code License](https://img.shields.io/badge/license-GPL-blueviolet)](https://github.com/SamuelMallick/dmpcrl-concept/blob/main/LICENSE)
-![Python 3.11](https://img.shields.io/badge/python-3.9-green.svg)
+![Python 3.11](https://img.shields.io/badge/python-3.11-green.svg)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
-This repository contains the source code used to produce the results obtained in [Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control](ADD LINK) submitted to [Computers and Electronics in Agriculture](https://www.sciencedirect.com/journal/computers-and-electronics-in-agriculture).
+This repository contains the source code used to produce the results obtained in [Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control](https://arxiv.org/abs/2409.12789) submitted to [Computers and Electronics in Agriculture](https://www.sciencedirect.com/journal/computers-and-electronics-in-agriculture).
 
 In this work we propose an integrated model predictive control and reinforcement learning approach for greenhouse climate control.
 
@@ -13,11 +13,11 @@ If you find the paper or this repository helpful in your publications, please co
 
 ```bibtex
 @article{mallick2023multi,
-  title = {ADD TITLE},
-  author = {ADD AUTHORS},
-  journal={ADD JOURNAL},
+  title = {Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control},
+  author = {Mallick, Samuel and Airaldi, Filippo and Dabiri, Azita and Sun, Congcong and De Schutter, Bart},
+  journal={arXiv preprint arXiv:2409.12789},
   year = {2024},
-  url = {ADD URL}
+  url = {https://arxiv.org/abs/2409.12789}
 }
 ```
 
@@ -67,6 +67,6 @@ The repository is provided under the GNU General Public License. See the [LICENS
 
 > This research is part of a project that has received funding from the European Research Council (ERC) under the European Union’s Horizon 2020 research and innovation programme ([Grant agreement No. 101018826 - CLariNet](https://cordis.europa.eu/project/id/101018826)).
 
-Copyright (c) 2023 Samuel Mallick.
+Copyright (c) 2024 Samuel Mallick.
 
 Copyright notice: Technische Universiteit Delft hereby disclaims all copyright interest in the program “mpcrl-greenouse” (Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control) written by the Author(s). Prof. Dr. Ir. Fred van Keulen, Dean of 3mE.
