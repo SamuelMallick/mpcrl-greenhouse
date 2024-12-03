@@ -1,4 +1,6 @@
+from typing import Optional
 import casadi as cs
+from gymnasium import Env
 import numpy as np
 from csnlp import Solution
 from mpcrl import Agent, LstdQLearningAgent
@@ -13,6 +15,8 @@ class GreenhouseAgent(Agent):
     solve_times: list[
         list[float]
     ] = []  # list of lists. First dim for episodes, second for timesteps
+    # list of computation times from different optimization problems solved in the same time step
+    time_step_computation_time: list[float] = []    
 
     def set_mpc_parameters(self, d: np.ndarray) -> None:
         """Sets the disturbance and constraints parameters of the agent's MPC.
@@ -75,8 +79,27 @@ class GreenhouseAgent(Agent):
             state, deterministic, vals0, action_space, **kwargs
         )
         if "t_wall_total" in sol.stats:
-            self.solve_times[-1].append(sol.stats["t_wall_total"])
+            self.time_step_computation_time.append(sol.stats["t_wall_total"])
         return action, sol
+    
+    def action_value(
+        self,
+        state,
+        action,
+        vals0 = None,
+        **kwargs,
+    ) -> Solution:
+        sol = super().action_value(
+            state, action, vals0, **kwargs
+        )
+        if "t_wall_total" in sol.stats:
+            self.time_step_computation_time.append(sol.stats["t_wall_total"])
+        return sol
+    
+    def on_timestep_end(self, env: Env, episode: int, timestep: int) -> None:
+        self.solve_times[-1].append(sum(self.time_step_computation_time))
+        self.time_step_computation_time = []
+        return super().on_timestep_end(env, episode, timestep)
 
 
 class GreenhouseSampleAgent(GreenhouseAgent):
@@ -85,3 +108,10 @@ class GreenhouseSampleAgent(GreenhouseAgent):
 
 class GreenhouseLearningAgent(LstdQLearningAgent, GreenhouseAgent):
     """An agent controlling the greenhouse who can learn the MPC policy using LSTD Q-learning."""
+
+    def update(self) -> Optional[str]:
+        stats = super().update()
+        if stats is not None:
+            if "t_wall_total" in stats:
+                self.time_step_computation_time.append(stats["t_wall_total"])
+        return None if stats["success"] else stats["return_status"]

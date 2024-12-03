@@ -142,6 +142,8 @@ agent.train(
     else {},
 )
 
+print(np.mean(agent.solve_times))
+
 # extract data
 TD = agent.td_errors
 TD = np.asarray(TD).reshape(test.num_episodes, -1)
