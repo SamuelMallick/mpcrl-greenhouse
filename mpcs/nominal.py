@@ -135,7 +135,7 @@ class NominalMpc(Mpc[cs.SX]):
                 "max_iter": 2000,
                 "print_user_options": "yes",
                 "print_options_documentation": "no",
-                # "linear_solver": "ma57",  # spral
+                "linear_solver": "ma57",  # spral
                 "nlp_scaling_method": "gradient-based",
                 "nlp_scaling_max_gradient": 10,
             },
