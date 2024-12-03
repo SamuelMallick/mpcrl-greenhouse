@@ -28,7 +28,7 @@ if len(sys.argv) > 1:
     mod = importlib.import_module(f"sims.configs.{config_file}")
     test = mod.Test()
 else:
-    from sims.configs.test_63 import Test  # type: ignore
+    from sims.configs.test_80 import Test  # type: ignore
 
     test = Test()
 
