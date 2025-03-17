@@ -5,7 +5,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
-This repository contains the source code used to produce the results obtained in [Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control](https://arxiv.org/abs/2409.12789) submitted to [Computers and Electronics in Agriculture](https://www.sciencedirect.com/journal/computers-and-electronics-in-agriculture).
+This repository contains the source code used to produce the results obtained in [Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control](https://www.sciencedirect.com/science/article/pii/S2772375524003551) published in [Computers and Electronics in Agriculture](https://www.sciencedirect.com/journal/computers-and-electronics-in-agriculture).
 
 In this work we propose an integrated model predictive control and reinforcement learning approach for greenhouse climate control.
 
