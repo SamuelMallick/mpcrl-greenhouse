@@ -12,12 +12,14 @@ In this work we propose an integrated model predictive control and reinforcement
 If you find the paper or this repository helpful in your publications, please consider citing it.
 
 ```bibtex
-@article{mallick2023multi,
-  title = {Reinforcement Learning-Based Model Predicitive Control for Greenhouse Climate Control},
-  author = {Mallick, Samuel and Airaldi, Filippo and Dabiri, Azita and Sun, Congcong and De Schutter, Bart},
-  journal={arXiv preprint arXiv:2409.12789},
-  year = {2024},
-  url = {https://arxiv.org/abs/2409.12789}
+@article{mallick2025reinforcement,
+  title={Reinforcement learning-based model predictive control for greenhouse climate control},
+  author={Mallick, Samuel and Airaldi, Filippo and Dabiri, Azita and Sun, Congcong and De Schutter, Bart},
+  journal={Smart Agricultural Technology},
+  volume={10},
+  pages={100751},
+  year={2025},
+  publisher={Elsevier}
 }
 ```
 
